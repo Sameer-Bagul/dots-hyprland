@@ -22,10 +22,11 @@ Singleton {
         todoFileView.setText(JSON.stringify(root.list))
     }
 
-    function addTask(desc) {
+    function addTask(desc, date) {
         const item = {
             "content": desc,
             "done": false,
+            "date": date || "",
         }
         addItem(item)
     }
