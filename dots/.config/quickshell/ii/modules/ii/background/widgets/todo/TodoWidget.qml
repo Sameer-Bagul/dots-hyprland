@@ -18,8 +18,18 @@ AbstractBackgroundWidget {
 
     configEntryName: "todo"
 
-    implicitWidth: 530
-    implicitHeight: 320
+    property bool showCalendar: false
+
+    implicitWidth: showCalendar ? 635 : 410
+    implicitHeight: 360
+
+    Behavior on implicitWidth {
+        NumberAnimation {
+            duration: Appearance.animation.elementMove.duration
+            easing.type: Appearance.animation.elementMove.type
+            easing.bezierCurve: Appearance.animation.elementMove.bezierCurve
+        }
+    }
 
     property int monthShift: 0
     property var viewingDate: CalendarLayout.getDateInXMonthsTime(monthShift)
@@ -55,6 +65,11 @@ AbstractBackgroundWidget {
         const tomorrowStr = CalendarLayout.formatDateKey(tomorrow.getFullYear(), tomorrow.getMonth() + 1, tomorrow.getDate());
         if (dateStr === tomorrowStr) return Translation.tr("Tomorrow");
 
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = CalendarLayout.formatDateKey(yesterday.getFullYear(), yesterday.getMonth() + 1, yesterday.getDate());
+        if (dateStr === yesterdayStr) return Translation.tr("Yesterday");
+
         const parts = dateStr.split("-").map(p => parseInt(p, 10));
         const d = new Date(parts[0], parts[1] - 1, parts[2]);
         return d.toLocaleDateString(Qt.locale(), "dddd");
@@ -85,14 +100,31 @@ AbstractBackgroundWidget {
 
         RowLayout {
             anchors.fill: parent
-            anchors.margins: 14
-            spacing: 12
+            anchors.margins: 16
+            spacing: root.showCalendar ? 14 : 0
 
-            // ================= LEFT: CALENDAR COLUMN =================
+            // ================= LEFT: COLLAPSIBLE CALENDAR =================
             ColumnLayout {
-                Layout.preferredWidth: 220
+                id: calendarPane
+                Layout.preferredWidth: root.showCalendar ? 220 : 0
                 Layout.fillHeight: true
-                spacing: 6
+                visible: opacity > 0
+                opacity: root.showCalendar ? 1 : 0
+                clip: true
+
+                Behavior on Layout.preferredWidth {
+                    NumberAnimation {
+                        duration: Appearance.animation.elementMove.duration
+                        easing.type: Appearance.animation.elementMove.type
+                        easing.bezierCurve: Appearance.animation.elementMove.bezierCurve
+                    }
+                }
+
+                Behavior on opacity {
+                    NumberAnimation {
+                        duration: Appearance.animation.elementMoveFast.duration
+                    }
+                }
 
                 // Month navigation row
                 RowLayout {
@@ -217,14 +249,22 @@ AbstractBackgroundWidget {
                 Layout.topMargin: 4
                 Layout.bottomMargin: 4
                 width: 1
+                visible: root.showCalendar
+                opacity: root.showCalendar ? 1 : 0
                 color: ColorUtils.transparentize(Appearance.colors.colOutlineVariant, 0.7)
+
+                Behavior on opacity {
+                    NumberAnimation {
+                        duration: Appearance.animation.elementMoveFast.duration
+                    }
+                }
             }
 
-            // ================= RIGHT: DAY AGENDA COLUMN =================
+            // ================= RIGHT: DAY AGENDA / TODO COLUMN =================
             ColumnLayout {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                spacing: 8
+                spacing: 10
 
                 // Header for selected day
                 RowLayout {
@@ -235,12 +275,34 @@ AbstractBackgroundWidget {
                         Layout.fillWidth: true
                         spacing: 1
 
-                        StyledText {
-                            text: root.getFormattedDateTitle(root.selectedDateString)
-                            font.pixelSize: Appearance.font.pixelSize.large
-                            font.weight: Font.DemiBold
-                            color: Appearance.colors.colOnLayer0
-                            elide: Text.ElideRight
+                        RowLayout {
+                            spacing: 6
+
+                            StyledText {
+                                text: root.getFormattedDateTitle(root.selectedDateString)
+                                font.pixelSize: Appearance.font.pixelSize.larger
+                                font.weight: Font.DemiBold
+                                color: Appearance.colors.colOnLayer0
+                                elide: Text.ElideRight
+                            }
+
+                            // Return to Today chip if viewing another date
+                            RippleButton {
+                                implicitWidth: 24
+                                implicitHeight: 24
+                                buttonRadius: Appearance.rounding.verysmall
+                                visible: root.selectedDateString !== CalendarLayout.getTodayDateString()
+                                onClicked: {
+                                    root.selectedDateString = CalendarLayout.getTodayDateString();
+                                    root.monthShift = 0;
+                                }
+                                contentItem: MaterialSymbol {
+                                    anchors.centerIn: parent
+                                    text: "today"
+                                    iconSize: 16
+                                    color: Appearance.colors.colPrimary
+                                }
+                            }
                         }
 
                         StyledText {
@@ -253,18 +315,34 @@ AbstractBackgroundWidget {
 
                     // Task count chip
                     Rectangle {
-                        implicitWidth: badgeText.implicitWidth + 12
-                        implicitHeight: 22
+                        implicitWidth: badgeText.implicitWidth + 14
+                        implicitHeight: 24
                         radius: Appearance.rounding.full
                         color: root.remainingCount > 0 ? ColorUtils.transparentize(Appearance.colors.colPrimary, 0.85) : Appearance.colors.colLayer2
 
                         StyledText {
                             id: badgeText
                             anchors.centerIn: parent
-                            text: root.remainingCount > 0 ? `${root.remainingCount} pending` : "Done 🎉"
+                            text: root.remainingCount > 0 ? `${root.remainingCount} pending` : Translation.tr("All done")
                             font.pixelSize: Appearance.font.pixelSize.smaller
                             font.weight: Font.DemiBold
                             color: root.remainingCount > 0 ? Appearance.colors.colPrimary : Appearance.colors.colOutlineVariant
+                        }
+                    }
+
+                    // Calendar toggle button
+                    RippleButton {
+                        implicitWidth: 32
+                        implicitHeight: 32
+                        buttonRadius: Appearance.rounding.verysmall
+                        toggled: root.showCalendar
+                        onClicked: root.showCalendar = !root.showCalendar
+
+                        contentItem: MaterialSymbol {
+                            anchors.centerIn: parent
+                            text: root.showCalendar ? "calendar_today" : "calendar_month"
+                            iconSize: 18
+                            color: root.showCalendar ? Appearance.colors.colPrimary : Appearance.colors.colOnLayer0
                         }
                     }
                 }
@@ -279,19 +357,19 @@ AbstractBackgroundWidget {
                     ColumnLayout {
                         anchors.centerIn: parent
                         visible: root.selectedDateTasks.length === 0
-                        spacing: 4
+                        spacing: 6
 
                         MaterialSymbol {
                             Layout.alignment: Qt.AlignHCenter
                             text: "event_available"
-                            iconSize: 32
+                            iconSize: 36
                             color: ColorUtils.transparentize(Appearance.colors.colOutlineVariant, 0.5)
                         }
 
                         StyledText {
                             Layout.alignment: Qt.AlignHCenter
                             text: Translation.tr("No tasks for this day")
-                            font.pixelSize: Appearance.font.pixelSize.small
+                            font.pixelSize: Appearance.font.pixelSize.normal
                             color: Appearance.colors.colOutlineVariant
                         }
                     }
@@ -308,7 +386,7 @@ AbstractBackgroundWidget {
                             id: taskRow
                             required property var modelData
                             width: taskListView.width
-                            height: 34
+                            implicitHeight: Math.max(38, taskRowLayout.implicitHeight + 8)
                             radius: Appearance.rounding.small
                             color: rowMouseArea.containsMouse ? Appearance.colors.colLayer1 : "transparent"
 
@@ -323,15 +401,16 @@ AbstractBackgroundWidget {
                             }
 
                             RowLayout {
+                                id: taskRowLayout
                                 anchors.fill: parent
-                                anchors.leftMargin: 6
-                                anchors.rightMargin: 6
-                                spacing: 8
+                                anchors.leftMargin: 8
+                                anchors.rightMargin: 8
+                                spacing: 10
 
                                 // Toggle checkbox
                                 MouseArea {
-                                    implicitWidth: 20
-                                    implicitHeight: 20
+                                    implicitWidth: 22
+                                    implicitHeight: 22
                                     cursorShape: Qt.PointingHandCursor
                                     onClicked: {
                                         if (taskRow.modelData.done) {
@@ -344,7 +423,7 @@ AbstractBackgroundWidget {
                                     MaterialSymbol {
                                         anchors.centerIn: parent
                                         text: taskRow.modelData.done ? "check_circle" : "radio_button_unchecked"
-                                        iconSize: 18
+                                        iconSize: 20
                                         color: taskRow.modelData.done ? Appearance.colors.colPrimary : Appearance.colors.colOutline
                                     }
                                 }
@@ -353,16 +432,16 @@ AbstractBackgroundWidget {
                                 StyledText {
                                     Layout.fillWidth: true
                                     text: taskRow.modelData.content
-                                    elide: Text.ElideRight
-                                    font.pixelSize: Appearance.font.pixelSize.small
+                                    wrapMode: Text.Wrap
+                                    font.pixelSize: Appearance.font.pixelSize.normal
                                     font.strikeout: taskRow.modelData.done
                                     color: taskRow.modelData.done ? Appearance.colors.colOutlineVariant : Appearance.colors.colOnLayer0
                                 }
 
                                 // Delete button
                                 RippleButton {
-                                    implicitWidth: 22
-                                    implicitHeight: 22
+                                    implicitWidth: 24
+                                    implicitHeight: 24
                                     buttonRadius: Appearance.rounding.verysmall
                                     visible: rowMouseArea.containsMouse
                                     onClicked: Todo.deleteItem(taskRow.modelData.originalIndex)
@@ -370,7 +449,7 @@ AbstractBackgroundWidget {
                                     contentItem: MaterialSymbol {
                                         anchors.centerIn: parent
                                         text: "close"
-                                        iconSize: 14
+                                        iconSize: 16
                                         color: Appearance.colors.colOutlineVariant
                                     }
                                 }
@@ -382,7 +461,7 @@ AbstractBackgroundWidget {
                 // Quick Add Input Box
                 Rectangle {
                     Layout.fillWidth: true
-                    height: 36
+                    height: 40
                     radius: Appearance.rounding.small
                     color: Appearance.colors.colLayer1
                     border.width: 1
@@ -390,13 +469,13 @@ AbstractBackgroundWidget {
 
                     RowLayout {
                         anchors.fill: parent
-                        anchors.leftMargin: 8
-                        anchors.rightMargin: 6
-                        spacing: 6
+                        anchors.leftMargin: 10
+                        anchors.rightMargin: 8
+                        spacing: 8
 
                         MaterialSymbol {
                             text: "add_task"
-                            iconSize: 16
+                            iconSize: 18
                             color: Appearance.colors.colOutlineVariant
                         }
 
@@ -404,22 +483,22 @@ AbstractBackgroundWidget {
                             id: taskTextInput
                             Layout.fillWidth: true
                             color: Appearance.colors.colOnLayer0
-                            font.pixelSize: Appearance.font.pixelSize.small
+                            font.pixelSize: Appearance.font.pixelSize.normal
                             clip: true
                             onAccepted: addTask()
 
                             StyledText {
                                 anchors.fill: parent
                                 visible: taskTextInput.text.length === 0 && !taskTextInput.activeFocus
-                                text: Translation.tr("Add task for this day...")
-                                font.pixelSize: Appearance.font.pixelSize.small
+                                text: Translation.tr("Add task...")
+                                font.pixelSize: Appearance.font.pixelSize.normal
                                 color: Appearance.colors.colOutlineVariant
                             }
                         }
 
                         RippleButton {
-                            implicitWidth: 26
-                            implicitHeight: 26
+                            implicitWidth: 28
+                            implicitHeight: 28
                             buttonRadius: Appearance.rounding.verysmall
                             enabled: taskTextInput.text.trim().length > 0
                             onClicked: addTask()
@@ -427,7 +506,7 @@ AbstractBackgroundWidget {
                             contentItem: MaterialSymbol {
                                 anchors.centerIn: parent
                                 text: "arrow_upward"
-                                iconSize: 16
+                                iconSize: 18
                                 color: taskTextInput.text.trim().length > 0 ? Appearance.colors.colPrimary : Appearance.colors.colOutlineVariant
                             }
                         }
