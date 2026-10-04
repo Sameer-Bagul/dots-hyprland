@@ -102,7 +102,7 @@ AbstractBackgroundWidget {
                     StyledText {
                         Layout.fillWidth: true
                         text: `${root.monthShift !== 0 ? "• " : ""}${root.viewingDate.toLocaleDateString(Qt.locale(), "MMMM yyyy")}`
-                        font.pixelSize: Appearance.font.pixelSize.medium
+                        font.pixelSize: Appearance.font.pixelSize.large
                         font.weight: Font.DemiBold
                         color: Appearance.colors.colOnLayer0
                         elide: Text.ElideRight
@@ -237,7 +237,7 @@ AbstractBackgroundWidget {
 
                         StyledText {
                             text: root.getFormattedDateTitle(root.selectedDateString)
-                            font.pixelSize: Appearance.font.pixelSize.medium
+                            font.pixelSize: Appearance.font.pixelSize.large
                             font.weight: Font.DemiBold
                             color: Appearance.colors.colOnLayer0
                             elide: Text.ElideRight
