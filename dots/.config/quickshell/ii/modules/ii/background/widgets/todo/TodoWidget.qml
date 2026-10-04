@@ -261,19 +261,54 @@ AbstractBackgroundWidget {
                     delegate: Rectangle {
                         id: taskRow
                         required property var modelData
+                        property bool isEditing: false
+                        property bool cancelRequested: false
+
                         width: taskListView.width
                         implicitHeight: Math.max(38, taskRowLayout.implicitHeight + 8)
                         radius: Appearance.rounding.small
-                        color: rowMouseArea.containsMouse ? Appearance.colors.colLayer1 : "transparent"
+                        color: taskRow.isEditing
+                            ? Appearance.colors.colLayer2
+                            : (rowMouseArea.containsMouse ? Appearance.colors.colLayer1 : "transparent")
 
                         Behavior on color {
                             animation: Appearance.animation.elementMoveFast.colorAnimation.createObject(this)
+                        }
+
+                        function startEdit() {
+                            taskRow.cancelRequested = false;
+                            editTextField.text = taskRow.modelData.content;
+                            taskRow.isEditing = true;
+                            Qt.callLater(() => {
+                                editTextField.forceActiveFocus();
+                                editTextField.selectAll();
+                            });
+                        }
+
+                        function commitEdit() {
+                            if (!taskRow.isEditing) return;
+                            const trimmed = (editTextField.text ?? "").trim();
+                            if (trimmed.length > 0 && trimmed !== taskRow.modelData.content) {
+                                Todo.editTask(taskRow.modelData.originalIndex, trimmed);
+                            }
+                            taskRow.isEditing = false;
+                            taskRow.cancelRequested = false;
+                        }
+
+                        function cancelEdit() {
+                            taskRow.isEditing = false;
+                            taskRow.cancelRequested = false;
+                            editTextField.text = taskRow.modelData.content;
                         }
 
                         MouseArea {
                             id: rowMouseArea
                             anchors.fill: parent
                             hoverEnabled: true
+                            enabled: !taskRow.isEditing
+                            onDoubleClicked: (mouse) => {
+                                taskRow.startEdit();
+                            }
                         }
 
                         RowLayout {
@@ -281,7 +316,7 @@ AbstractBackgroundWidget {
                             anchors.fill: parent
                             anchors.leftMargin: 8
                             anchors.rightMargin: 8
-                            spacing: 10
+                            spacing: 8
 
                             // Toggle checkbox
                             MouseArea {
@@ -289,6 +324,9 @@ AbstractBackgroundWidget {
                                 implicitHeight: 22
                                 cursorShape: Qt.PointingHandCursor
                                 onClicked: {
+                                    if (taskRow.isEditing) {
+                                        taskRow.commitEdit();
+                                    }
                                     if (taskRow.modelData.done) {
                                         Todo.markUnfinished(taskRow.modelData.originalIndex);
                                     } else {
@@ -304,9 +342,10 @@ AbstractBackgroundWidget {
                                 }
                             }
 
-                            // Task content
+                            // Task content (view mode)
                             StyledText {
                                 Layout.fillWidth: true
+                                visible: !taskRow.isEditing
                                 text: taskRow.modelData.content
                                 wrapMode: Text.Wrap
                                 font.pixelSize: Appearance.font.pixelSize.normal
@@ -314,18 +353,112 @@ AbstractBackgroundWidget {
                                 color: taskRow.modelData.done ? Appearance.colors.colOutlineVariant : Appearance.colors.colOnLayer0
                             }
 
-                            // Delete button
+                            // Task content (edit mode)
+                            TextField {
+                                id: editTextField
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 32
+                                Layout.alignment: Qt.AlignVCenter
+                                verticalAlignment: Text.AlignVCenter
+                                visible: taskRow.isEditing
+                                color: Appearance.colors.colOnLayer0
+                                font.pixelSize: Appearance.font.pixelSize.normal
+                                selectByMouse: true
+                                activeFocusOnTab: true
+                                clip: true
+                                leftPadding: 8
+                                rightPadding: 8
+                                topPadding: 0
+                                bottomPadding: 0
+                                background: Rectangle {
+                                    color: Appearance.colors.colLayer1
+                                    radius: Appearance.rounding.verysmall
+                                    border.width: 1
+                                    border.color: Appearance.colors.colPrimary
+                                }
+                                onAccepted: taskRow.commitEdit()
+                                Keys.onEscapePressed: (event) => {
+                                    taskRow.cancelEdit();
+                                    event.accepted = true;
+                                }
+                                onActiveFocusChanged: {
+                                    if (!activeFocus && taskRow.isEditing) {
+                                        if (!taskRow.cancelRequested) {
+                                            taskRow.commitEdit();
+                                        } else {
+                                            taskRow.cancelEdit();
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Edit button (visible on hover in view mode)
                             RippleButton {
                                 implicitWidth: 24
                                 implicitHeight: 24
                                 buttonRadius: Appearance.rounding.verysmall
-                                visible: rowMouseArea.containsMouse
+                                visible: !taskRow.isEditing && rowMouseArea.containsMouse
+                                onClicked: taskRow.startEdit()
+
+                                contentItem: MaterialSymbol {
+                                    anchors.centerIn: parent
+                                    text: "edit"
+                                    iconSize: 15
+                                    color: Appearance.colors.colOutlineVariant
+                                }
+                            }
+
+                            // Delete button (visible on hover in view mode)
+                            RippleButton {
+                                implicitWidth: 24
+                                implicitHeight: 24
+                                buttonRadius: Appearance.rounding.verysmall
+                                visible: !taskRow.isEditing && rowMouseArea.containsMouse
                                 onClicked: Todo.deleteItem(taskRow.modelData.originalIndex)
 
                                 contentItem: MaterialSymbol {
                                     anchors.centerIn: parent
                                     text: "close"
                                     iconSize: 16
+                                    color: Appearance.colors.colOutlineVariant
+                                }
+                            }
+
+                            // Save edit button (visible in edit mode)
+                            RippleButton {
+                                id: saveEditButton
+                                implicitWidth: 24
+                                implicitHeight: 24
+                                buttonRadius: Appearance.rounding.verysmall
+                                visible: taskRow.isEditing
+                                onClicked: taskRow.commitEdit()
+
+                                contentItem: MaterialSymbol {
+                                    anchors.centerIn: parent
+                                    text: "check"
+                                    iconSize: 17
+                                    color: Appearance.colors.colPrimary
+                                }
+                            }
+
+                            // Cancel edit button (visible in edit mode)
+                            RippleButton {
+                                id: cancelEditButton
+                                implicitWidth: 24
+                                implicitHeight: 24
+                                buttonRadius: Appearance.rounding.verysmall
+                                visible: taskRow.isEditing
+                                onPressed: {
+                                    taskRow.cancelRequested = true;
+                                }
+                                onClicked: {
+                                    taskRow.cancelEdit();
+                                }
+
+                                contentItem: MaterialSymbol {
+                                    anchors.centerIn: parent
+                                    text: "close"
+                                    iconSize: 17
                                     color: Appearance.colors.colOutlineVariant
                                 }
                             }

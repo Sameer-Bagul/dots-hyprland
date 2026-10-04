@@ -58,6 +58,15 @@ Singleton {
         }
     }
 
+    function editTask(index, newContent) {
+        if (index >= 0 && index < list.length) {
+            list[index].content = newContent
+            // Reassign to trigger onListChanged
+            root.list = list.slice(0)
+            todoFileView.setText(JSON.stringify(root.list))
+        }
+    }
+
     function refresh() {
         todoFileView.reload()
     }
