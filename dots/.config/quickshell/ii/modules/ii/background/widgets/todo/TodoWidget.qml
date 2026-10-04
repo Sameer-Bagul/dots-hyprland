@@ -17,6 +17,7 @@ AbstractBackgroundWidget {
     id: root
 
     configEntryName: "todo"
+    needsColText: true
 
     property bool showCalendar: false
 
@@ -97,6 +98,13 @@ AbstractBackgroundWidget {
         radius: Appearance.rounding.large
         border.width: 1
         border.color: ColorUtils.transparentize(Appearance.colors.colOutlineVariant, 0.7)
+
+        Behavior on color {
+            animation: Appearance.animation.elementMoveFast.colorAnimation.createObject(this)
+        }
+        Behavior on border.color {
+            animation: Appearance.animation.elementMoveFast.colorAnimation.createObject(this)
+        }
 
         RowLayout {
             anchors.fill: parent
@@ -461,17 +469,17 @@ AbstractBackgroundWidget {
                 // Quick Add Input Box
                 Rectangle {
                     Layout.fillWidth: true
-                    height: 40
+                    height: 42
                     radius: Appearance.rounding.small
                     color: Appearance.colors.colLayer1
                     border.width: 1
-                    border.color: taskTextInput.activeFocus ? Appearance.colors.colPrimary : ColorUtils.transparentize(Appearance.colors.colOutlineVariant, 0.7)
+                    border.color: taskTextField.activeFocus ? Appearance.colors.colPrimary : ColorUtils.transparentize(Appearance.colors.colOutlineVariant, 0.7)
 
                     RowLayout {
                         anchors.fill: parent
                         anchors.leftMargin: 10
-                        anchors.rightMargin: 8
-                        spacing: 8
+                        anchors.rightMargin: 6
+                        spacing: 6
 
                         MaterialSymbol {
                             text: "add_task"
@@ -479,44 +487,43 @@ AbstractBackgroundWidget {
                             color: Appearance.colors.colOutlineVariant
                         }
 
-                        TextInput {
-                            id: taskTextInput
+                        TextField {
+                            id: taskTextField
                             Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            verticalAlignment: Text.AlignVCenter
                             color: Appearance.colors.colOnLayer0
                             font.pixelSize: Appearance.font.pixelSize.normal
+                            placeholderText: Translation.tr("Add task...")
+                            placeholderTextColor: Appearance.colors.colOutlineVariant
+                            selectByMouse: true
+                            activeFocusOnTab: true
                             clip: true
+                            background: null
                             onAccepted: addTask()
-
-                            StyledText {
-                                anchors.fill: parent
-                                visible: taskTextInput.text.length === 0 && !taskTextInput.activeFocus
-                                text: Translation.tr("Add task...")
-                                font.pixelSize: Appearance.font.pixelSize.normal
-                                color: Appearance.colors.colOutlineVariant
-                            }
                         }
 
                         RippleButton {
-                            implicitWidth: 28
-                            implicitHeight: 28
+                            implicitWidth: 30
+                            implicitHeight: 30
                             buttonRadius: Appearance.rounding.verysmall
-                            enabled: taskTextInput.text.trim().length > 0
+                            enabled: taskTextField.text.trim().length > 0
                             onClicked: addTask()
 
                             contentItem: MaterialSymbol {
                                 anchors.centerIn: parent
                                 text: "arrow_upward"
                                 iconSize: 18
-                                color: taskTextInput.text.trim().length > 0 ? Appearance.colors.colPrimary : Appearance.colors.colOutlineVariant
+                                color: taskTextField.text.trim().length > 0 ? Appearance.colors.colPrimary : Appearance.colors.colOutlineVariant
                             }
                         }
                     }
 
                     function addTask() {
-                        const trimmed = taskTextInput.text.trim();
+                        const trimmed = taskTextField.text.trim();
                         if (trimmed.length > 0) {
                             Todo.addTask(trimmed, root.selectedDateString);
-                            taskTextInput.text = "";
+                            taskTextField.text = "";
                         }
                     }
                 }
