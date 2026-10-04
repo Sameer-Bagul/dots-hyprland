@@ -37,7 +37,7 @@ AbstractBackgroundWidget {
     property bool downloaded: false
     property string displayedArtFilePath: {
         if (!artUrl || artUrl.length === 0) return "";
-        if (artUrl.startsWith("file://")) return artUrl;
+        if (artUrl.startsWith("file://") || artUrl.startsWith("http://") || artUrl.startsWith("https://")) return artUrl;
         return root.downloaded ? Qt.resolvedUrl(artFilePath) : "";
     }
 
