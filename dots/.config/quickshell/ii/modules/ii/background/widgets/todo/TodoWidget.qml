@@ -37,10 +37,18 @@ AbstractBackgroundWidget {
     property var calendarLayout: CalendarLayout.getCalendarLayout(viewingDate, monthShift === 0)
     property string selectedDateString: CalendarLayout.getTodayDateString()
 
-    function getTaskCountForDate(dateStr) {
-        if (!Todo.list) return 0;
+    function getTaskCountForDate(dateStr, list) {
+        if (!list) return 0;
         const todayStr = CalendarLayout.getTodayDateString();
-        return Todo.list.filter(t => !t.done && ((t.date === dateStr) || (!t.date && dateStr === todayStr))).length;
+        return list.filter(t => !t.done && ((t.date === dateStr) || (!t.date && dateStr === todayStr))).length;
+    }
+
+    function addTask(text) {
+        const trimmed = (text ?? "").trim();
+        if (trimmed.length > 0) {
+            Todo.addTask(trimmed, root.selectedDateString);
+            taskTextField.text = "";
+        }
     }
 
     readonly property var selectedDateTasks: {
@@ -97,7 +105,7 @@ AbstractBackgroundWidget {
         color: Appearance.colors.colLayer0
         radius: Appearance.rounding.large
         border.width: 1
-        border.color: ColorUtils.transparentize(Appearance.colors.colOutlineVariant, 0.7)
+        border.color: Appearance.colors.colLayer0Border
 
         Behavior on color {
             animation: Appearance.animation.elementMoveFast.colorAnimation.createObject(this)
@@ -240,7 +248,7 @@ AbstractBackgroundWidget {
                                 dateString: cellData.dateString
                                 isToday: cellData.today
                                 isSelected: cellData.dateString === root.selectedDateString
-                                taskCount: root.getTaskCountForDate(cellData.dateString)
+                                taskCount: root.getTaskCountForDate(cellData.dateString, Todo.list)
 
                                 onClicked: {
                                     root.selectedDateString = cellData.dateString;
@@ -500,7 +508,7 @@ AbstractBackgroundWidget {
                             activeFocusOnTab: true
                             clip: true
                             background: null
-                            onAccepted: addTask()
+                            onAccepted: root.addTask(taskTextField.text)
                         }
 
                         RippleButton {
@@ -508,7 +516,7 @@ AbstractBackgroundWidget {
                             implicitHeight: 30
                             buttonRadius: Appearance.rounding.verysmall
                             enabled: taskTextField.text.trim().length > 0
-                            onClicked: addTask()
+                            onClicked: root.addTask(taskTextField.text)
 
                             contentItem: MaterialSymbol {
                                 anchors.centerIn: parent
@@ -516,14 +524,6 @@ AbstractBackgroundWidget {
                                 iconSize: 18
                                 color: taskTextField.text.trim().length > 0 ? Appearance.colors.colPrimary : Appearance.colors.colOutlineVariant
                             }
-                        }
-                    }
-
-                    function addTask() {
-                        const trimmed = taskTextField.text.trim();
-                        if (trimmed.length > 0) {
-                            Todo.addTask(trimmed, root.selectedDateString);
-                            taskTextField.text = "";
                         }
                     }
                 }
