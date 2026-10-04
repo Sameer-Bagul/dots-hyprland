@@ -59,6 +59,12 @@ AbstractBackgroundWidget {
             .filter(item => {
                 if (item.date) return item.date === root.selectedDateString;
                 return root.selectedDateString === todayStr;
+            })
+            .sort((a, b) => {
+                if (a.done !== b.done) {
+                    return a.done ? 1 : -1;
+                }
+                return a.originalIndex - b.originalIndex;
             });
     }
 
@@ -397,6 +403,13 @@ AbstractBackgroundWidget {
                         spacing: 4
                         model: root.selectedDateTasks
                         boundsBehavior: Flickable.StopAtBounds
+                        displaced: Transition {
+                            NumberAnimation {
+                                properties: "y"
+                                duration: Appearance.animation.elementMoveFast.duration
+                                easing.type: Appearance.animation.elementMoveFast.type
+                            }
+                        }
 
                         delegate: Rectangle {
                             id: taskRow
