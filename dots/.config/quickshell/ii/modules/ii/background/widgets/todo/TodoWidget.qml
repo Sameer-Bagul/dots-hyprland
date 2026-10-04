@@ -38,6 +38,7 @@ AbstractBackgroundWidget {
         }
     }
 
+    property bool showCalendar: false
     property int monthShift: 0
     property var viewingDate: CalendarLayout.getDateInXMonthsTime(monthShift)
     property var calendarLayout: CalendarLayout.getCalendarLayout(viewingDate, monthShift === 0)
@@ -103,6 +104,15 @@ AbstractBackgroundWidget {
         return d.toLocaleDateString(Qt.locale(), "MMMM d, yyyy");
     }
 
+    // Dismiss overlay: clicking anywhere outside the popup card closes it
+    MouseArea {
+        id: popupDismissArea
+        anchors.fill: parent
+        z: 85
+        visible: root.showCalendar
+        onClicked: root.showCalendar = false
+    }
+
     // Shadow
     StyledRectangularShadow {
         target: backgroundCard
@@ -133,6 +143,7 @@ AbstractBackgroundWidget {
 
             // Header for selected day
             RowLayout {
+                id: headerRow
                 Layout.fillWidth: true
                 spacing: 8
 
@@ -201,20 +212,14 @@ AbstractBackgroundWidget {
                     implicitWidth: 32
                     implicitHeight: 32
                     buttonRadius: Appearance.rounding.verysmall
-                    toggled: calendarPopup.visible
-                    onClicked: {
-                        if (calendarPopup.visible) {
-                            calendarPopup.close();
-                        } else {
-                            calendarPopup.open();
-                        }
-                    }
+                    toggled: root.showCalendar
+                    onClicked: root.showCalendar = !root.showCalendar
 
                     contentItem: MaterialSymbol {
                         anchors.centerIn: parent
                         text: "calendar_month"
                         iconSize: 18
-                        color: calendarPopup.visible ? Appearance.colors.colPrimary : Appearance.colors.colOnLayer0
+                        color: root.showCalendar ? Appearance.colors.colPrimary : Appearance.colors.colOnLayer0
                     }
                 }
             }
@@ -392,6 +397,178 @@ AbstractBackgroundWidget {
             }
         }
 
+        // ================= CALENDAR POPUP OVERLAY CARD =================
+        Rectangle {
+            id: calendarPopupCard
+            z: 100
+            visible: root.showCalendar
+            opacity: root.showCalendar ? 1 : 0
+            anchors.top: parent.top
+            anchors.topMargin: 56
+            anchors.right: parent.right
+            anchors.rightMargin: 16
+            width: 236
+            height: calendarColumn.implicitHeight + 20
+            radius: Appearance.rounding.normal
+            color: Appearance.colors.colLayer1
+            border.width: 1
+            border.color: Appearance.colors.colLayer0Border
+
+            Behavior on opacity {
+                NumberAnimation { duration: Appearance.animation.elementMoveFast.duration }
+            }
+
+            StyledRectangularShadow {
+                target: calendarPopupCard
+                radius: calendarPopupCard.radius
+                blur: Appearance.sizes.elevationMargin
+            }
+
+            // Consume clicks inside the card so they don't hit the dismiss overlay or drag
+            MouseArea {
+                anchors.fill: parent
+                onClicked: {}
+            }
+
+            Column {
+                id: calendarColumn
+                anchors.centerIn: parent
+                spacing: 5
+                width: 216
+
+                // Month navigation row
+                RowLayout {
+                    width: parent.width
+                    spacing: 2
+
+                    StyledText {
+                        Layout.fillWidth: true
+                        text: `${root.monthShift !== 0 ? "• " : ""}${root.viewingDate.toLocaleDateString(Qt.locale(), "MMM yyyy")}`
+                        font.pixelSize: Appearance.font.pixelSize.normal
+                        font.weight: Font.DemiBold
+                        color: Appearance.colors.colOnLayer0
+                        elide: Text.ElideRight
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: root.monthShift !== 0 ? Qt.PointingHandCursor : Qt.ArrowCursor
+                            onClicked: {
+                                if (root.monthShift !== 0) {
+                                    root.monthShift = 0;
+                                    root.selectedDateString = CalendarLayout.getTodayDateString();
+                                }
+                            }
+                        }
+                    }
+
+                    // Jump to today if shifted
+                    RippleButton {
+                        implicitWidth: 24
+                        implicitHeight: 24
+                        buttonRadius: Appearance.rounding.verysmall
+                        visible: root.monthShift !== 0
+                        onClicked: {
+                            root.monthShift = 0;
+                            root.selectedDateString = CalendarLayout.getTodayDateString();
+                        }
+                        contentItem: MaterialSymbol {
+                            anchors.centerIn: parent
+                            text: "today"
+                            iconSize: 15
+                            color: Appearance.colors.colPrimary
+                        }
+                    }
+
+                    // Prev month
+                    RippleButton {
+                        implicitWidth: 24
+                        implicitHeight: 24
+                        buttonRadius: Appearance.rounding.verysmall
+                        onClicked: root.monthShift--
+                        contentItem: MaterialSymbol {
+                            anchors.centerIn: parent
+                            text: "chevron_left"
+                            iconSize: 16
+                            color: Appearance.colors.colOnLayer0
+                        }
+                    }
+
+                    // Next month
+                    RippleButton {
+                        implicitWidth: 24
+                        implicitHeight: 24
+                        buttonRadius: Appearance.rounding.verysmall
+                        onClicked: root.monthShift++
+                        contentItem: MaterialSymbol {
+                            anchors.centerIn: parent
+                            text: "chevron_right"
+                            iconSize: 16
+                            color: Appearance.colors.colOnLayer0
+                        }
+                    }
+
+                    // Close button
+                    RippleButton {
+                        implicitWidth: 24
+                        implicitHeight: 24
+                        buttonRadius: Appearance.rounding.verysmall
+                        onClicked: root.showCalendar = false
+                        contentItem: MaterialSymbol {
+                            anchors.centerIn: parent
+                            text: "close"
+                            iconSize: 16
+                            color: Appearance.colors.colOutlineVariant
+                        }
+                    }
+                }
+
+                // Weekday headers
+                Row {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    spacing: 4
+
+                    Repeater {
+                        model: CalendarLayout.weekDays
+                        delegate: CalendarDayCell {
+                            day: Translation.tr(modelData.day)
+                            isWeekdayHeader: true
+                            isBold: true
+                        }
+                    }
+                }
+
+                // 6-Row Calendar Grid
+                Repeater {
+                    model: 6
+                    delegate: Row {
+                        id: weekRow
+                        required property int modelData
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        spacing: 4
+
+                        Repeater {
+                            model: 7
+                            delegate: CalendarDayCell {
+                                required property int index
+                                readonly property var cellData: root.calendarLayout[weekRow.modelData][index]
+
+                                day: String(cellData.day)
+                                dateString: cellData.dateString
+                                isToday: cellData.today
+                                isSelected: cellData.dateString === root.selectedDateString
+                                taskCount: root.getTaskCountForDate(cellData.dateString, Todo.list)
+
+                                onClicked: {
+                                    root.selectedDateString = cellData.dateString;
+                                    root.showCalendar = false;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         // Visual resize grip in bottom-right corner
         Item {
             anchors.right: parent.right
@@ -428,175 +605,6 @@ AbstractBackgroundWidget {
         }
     }
 
-    // ================= CALENDAR POPUP =================
-    Popup {
-        id: calendarPopup
-        padding: 0
-        margins: 0
-        modal: false
-        focus: true
-        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-        background: null
-
-        x: Math.max(0, Math.min(root.width - 242, (calendarButton.mapToItem(root, 0, 0).x + calendarButton.width - 242)))
-        y: calendarButton.mapToItem(root, 0, 0).y + calendarButton.height + 6
-        parent: root
-
-        contentItem: Rectangle {
-            id: calendarPopupCard
-            width: 242
-            implicitHeight: calendarPopupLayout.implicitHeight + 20
-            radius: Appearance.rounding.normal
-            color: Appearance.colors.colLayer1
-            border.width: 1
-            border.color: Appearance.colors.colLayer0Border
-
-            StyledRectangularShadow {
-                target: calendarPopupCard
-                radius: calendarPopupCard.radius
-                blur: 0.8 * Appearance.sizes.elevationMargin
-            }
-
-            ColumnLayout {
-                id: calendarPopupLayout
-                anchors.fill: parent
-                anchors.margins: 10
-                spacing: 6
-
-                // Month navigation row
-                RowLayout {
-                    Layout.fillWidth: true
-                    spacing: 4
-
-                    StyledText {
-                        Layout.fillWidth: true
-                        text: `${root.monthShift !== 0 ? "• " : ""}${root.viewingDate.toLocaleDateString(Qt.locale(), "MMMM yyyy")}`
-                        font.pixelSize: Appearance.font.pixelSize.normal
-                        font.weight: Font.DemiBold
-                        color: Appearance.colors.colOnLayer0
-                        elide: Text.ElideRight
-
-                        MouseArea {
-                            anchors.fill: parent
-                            cursorShape: root.monthShift !== 0 ? Qt.PointingHandCursor : Qt.ArrowCursor
-                            onClicked: {
-                                if (root.monthShift !== 0) {
-                                    root.monthShift = 0;
-                                    root.selectedDateString = CalendarLayout.getTodayDateString();
-                                }
-                            }
-                        }
-                    }
-
-                    // Jump to today if shifted
-                    RippleButton {
-                        implicitWidth: 24
-                        implicitHeight: 24
-                        buttonRadius: Appearance.rounding.verysmall
-                        visible: root.monthShift !== 0
-                        onClicked: {
-                            root.monthShift = 0;
-                            root.selectedDateString = CalendarLayout.getTodayDateString();
-                        }
-                        contentItem: MaterialSymbol {
-                            anchors.centerIn: parent
-                            text: "today"
-                            iconSize: 16
-                            color: Appearance.colors.colPrimary
-                        }
-                    }
-
-                    // Prev month
-                    RippleButton {
-                        implicitWidth: 24
-                        implicitHeight: 24
-                        buttonRadius: Appearance.rounding.verysmall
-                        onClicked: root.monthShift--
-                        contentItem: MaterialSymbol {
-                            anchors.centerIn: parent
-                            text: "chevron_left"
-                            iconSize: 18
-                            color: Appearance.colors.colOnLayer0
-                        }
-                    }
-
-                    // Next month
-                    RippleButton {
-                        implicitWidth: 24
-                        implicitHeight: 24
-                        buttonRadius: Appearance.rounding.verysmall
-                        onClicked: root.monthShift++
-                        contentItem: MaterialSymbol {
-                            anchors.centerIn: parent
-                            text: "chevron_right"
-                            iconSize: 18
-                            color: Appearance.colors.colOnLayer0
-                        }
-                    }
-
-                    // Close popup button
-                    RippleButton {
-                        implicitWidth: 24
-                        implicitHeight: 24
-                        buttonRadius: Appearance.rounding.verysmall
-                        onClicked: calendarPopup.close()
-                        contentItem: MaterialSymbol {
-                            anchors.centerIn: parent
-                            text: "close"
-                            iconSize: 16
-                            color: Appearance.colors.colOutlineVariant
-                        }
-                    }
-                }
-
-                // Weekday headers
-                RowLayout {
-                    Layout.alignment: Qt.AlignHCenter
-                    spacing: 4
-
-                    Repeater {
-                        model: CalendarLayout.weekDays
-                        delegate: CalendarDayCell {
-                            day: Translation.tr(modelData.day)
-                            isWeekdayHeader: true
-                            isBold: true
-                        }
-                    }
-                }
-
-                // 6-Row Calendar Grid
-                Repeater {
-                    model: 6
-                    delegate: RowLayout {
-                        id: weekRow
-                        required property int modelData
-                        Layout.alignment: Qt.AlignHCenter
-                        spacing: 4
-
-                        Repeater {
-                            model: 7
-                            delegate: CalendarDayCell {
-                                required property int index
-                                readonly property var cellData: root.calendarLayout[weekRow.modelData][index]
-
-                                day: String(cellData.day)
-                                dateString: cellData.dateString
-                                isToday: cellData.today
-                                isSelected: cellData.dateString === root.selectedDateString
-                                taskCount: root.getTaskCountForDate(cellData.dateString, Todo.list)
-
-                                onClicked: {
-                                    root.selectedDateString = cellData.dateString;
-                                    calendarPopup.close();
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
     // ================= RESIZE HANDLES =================
     component ResizeHandle: MouseArea {
         id: handle
@@ -610,7 +618,7 @@ AbstractBackgroundWidget {
         }
         cursorShape: resizeCursor
         hoverEnabled: true
-        z: 50
+        z: 95
 
         property real pressGlobalX: 0
         property real pressGlobalY: 0
