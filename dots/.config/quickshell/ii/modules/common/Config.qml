@@ -221,6 +221,8 @@ Singleton {
                         property string placementStrategy: "free" // "free", "leastBusy", "mostBusy"
                         property real x: 100
                         property real y: 400
+                        property real width: 380
+                        property real height: 420
                     }
                 }
                 property string wallpaperPath: ""
