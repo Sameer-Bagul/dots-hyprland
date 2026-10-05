@@ -259,6 +259,40 @@ Item { // Bar content region
                     spacing: 0
 
                     Revealer {
+                        reveal: RecordingStudioService.isRecording
+                        Layout.fillHeight: true
+                        Layout.rightMargin: reveal ? indicatorsRowLayout.realSpacing : 0
+                        Behavior on Layout.rightMargin {
+                            animation: Appearance.animation.elementMoveFast.numberAnimation.createObject(this)
+                        }
+                        RowLayout {
+                            id: recStatusRow
+                            spacing: 5
+                            Layout.alignment: Qt.AlignVCenter
+
+                            Rectangle {
+                                width: 8
+                                height: 8
+                                radius: 4
+                                color: RecordingStudioService.isPaused ? Appearance.m3colors.m3tertiary : "#FF3B30"
+                                SequentialAnimation on opacity {
+                                    running: RecordingStudioService.isRecording && !RecordingStudioService.isPaused
+                                    loops: Animation.Infinite
+                                    NumberAnimation { to: 0.3; duration: 600 }
+                                    NumberAnimation { to: 1.0; duration: 600 }
+                                }
+                            }
+
+                            StyledText {
+                                text: RecordingStudioService.formattedTime
+                                font.pixelSize: Appearance.font.pixelSize.smaller
+                                font.bold: true
+                                color: rightSidebarButton.colText
+                            }
+                        }
+                    }
+
+                    Revealer {
                         reveal: Audio.sink?.audio?.muted ?? false
                         Layout.fillHeight: true
                         Layout.rightMargin: reveal ? indicatorsRowLayout.realSpacing : 0
