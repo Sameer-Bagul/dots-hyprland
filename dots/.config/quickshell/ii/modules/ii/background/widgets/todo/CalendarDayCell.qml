@@ -13,6 +13,7 @@ Item {
     property int isToday: 0
     property bool isSelected: false
     property int taskCount: 0
+    property bool isPastWithRemaining: false
     property bool isWeekdayHeader: false
     property bool isBold: false
 
@@ -71,7 +72,11 @@ Item {
         anchors.bottomMargin: 2
         anchors.horizontalCenter: parent.horizontalCenter
         visible: !root.isWeekdayHeader && root.taskCount > 0
-        color: root.isSelected ? Appearance.colors.colOnPrimary : Appearance.colors.colPrimary
+        color: {
+            if (root.isSelected) return Appearance.colors.colOnPrimary;
+            if (root.isPastWithRemaining) return "#E5C07B";
+            return Appearance.colors.colPrimary;
+        }
     }
 
     MouseArea {
