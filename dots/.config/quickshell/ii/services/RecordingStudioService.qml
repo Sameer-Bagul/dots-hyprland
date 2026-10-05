@@ -256,5 +256,14 @@ Singleton {
         function toggleCamera() {
             root.toggleCamera();
         }
+        function cycleCameraShape() {
+            root.cycleCameraShape();
+        }
+        function cycleCameraSize() {
+            root.cycleCameraSize();
+        }
+        function toggleCameraMirror() {
+            root.toggleCameraMirror();
+        }
     }
 }

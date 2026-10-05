@@ -4,6 +4,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Effects
+import Qt5Compat.GraphicalEffects
 import QtMultimedia
 import Quickshell
 import Quickshell.Wayland
@@ -55,22 +56,17 @@ PanelWindow {
         Behavior on width { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
         Behavior on height { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
 
-        // Mask shape for MultiEffect
-        Rectangle {
-            id: maskShape
-            anchors.fill: parent
-            radius: (RecordingStudioService.cameraShape === "circle") ? (width / 2) : 24
-            visible: false
-        }
-
         // Camera Feed Container with Mask
         Item {
             id: videoContainer
             anchors.fill: parent
             layer.enabled: true
-            layer.effect: MultiEffect {
-                maskEnabled: true
-                maskSource: maskShape
+            layer.effect: OpacityMask {
+                maskSource: Rectangle {
+                    width: videoContainer.width
+                    height: videoContainer.height
+                    radius: (RecordingStudioService.cameraShape === "circle") ? (width / 2) : 24
+                }
             }
 
             // Dark placeholder background if camera is warming up
