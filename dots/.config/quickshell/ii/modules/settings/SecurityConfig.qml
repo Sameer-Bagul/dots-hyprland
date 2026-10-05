@@ -141,87 +141,153 @@ Item {
                     }
                 }
 
-                // Quick Status Tiles
+                // Minimalist Icon-Based Security Status Dock
                 RowLayout {
-                    spacing: 8
+                    spacing: 10
+                    Layout.alignment: Qt.AlignVCenter
 
-                    // Fingerprints Tile
+                    // 1. Biometrics / Fingerprint Status Icon
                     Rectangle {
-                        implicitWidth: fpTileCol.implicitWidth + 20
-                        implicitHeight: 48
-                        radius: Appearance.rounding.small
-                        color: Appearance.colors.colLayer2Base
+                        implicitWidth: 42
+                        implicitHeight: 42
+                        radius: Appearance.rounding.full
+                        color: SecurityService.enrolledFingers.length > 0
+                            ? ColorUtils.transparentize(Appearance.colors.colPrimary, 0.85)
+                            : Appearance.colors.colLayer2Base
                         border.width: 1
                         border.color: SecurityService.enrolledFingers.length > 0
-                            ? ColorUtils.transparentize(Appearance.colors.colPrimary, 0.7)
+                            ? ColorUtils.transparentize(Appearance.colors.colPrimary, 0.6)
                             : Appearance.colors.colLayer0Border
 
-                        ColumnLayout {
-                            id: fpTileCol
-                            anchors.centerIn: parent
-                            spacing: 2
+                        MouseArea {
+                            id: fpIconMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: root.showEnrollDialog = true
+                        }
 
-                            RowLayout {
-                                spacing: 4
-                                MaterialSymbol {
-                                    text: "fingerprint"
-                                    iconSize: 14
-                                    color: SecurityService.enrolledFingers.length > 0
-                                        ? Appearance.colors.colPrimary
-                                        : Appearance.colors.colOutlineVariant
-                                }
-                                StyledText {
-                                    text: Translation.tr("Fingerprint")
-                                    font.pixelSize: Appearance.font.pixelSize.smaller
-                                    font.weight: Font.Medium
-                                    color: Appearance.colors.colOnLayer0
-                                }
+                        MaterialSymbol {
+                            anchors.centerIn: parent
+                            text: "fingerprint"
+                            iconSize: 22
+                            color: SecurityService.enrolledFingers.length > 0
+                                ? Appearance.colors.colPrimary
+                                : Appearance.colors.colOutlineVariant
+                        }
+
+                        // Status Badge Micro-Dot
+                        Rectangle {
+                            anchors.top: parent.top
+                            anchors.right: parent.right
+                            anchors.margins: 1
+                            implicitWidth: 12
+                            implicitHeight: 12
+                            radius: Appearance.rounding.full
+                            color: SecurityService.enrolledFingers.length > 0 ? Appearance.colors.colPrimary : Appearance.colors.colOutlineVariant
+                            border.width: 2
+                            border.color: Appearance.colors.colLayer1Base
+
+                            MaterialSymbol {
+                                anchors.centerIn: parent
+                                visible: SecurityService.enrolledFingers.length > 0
+                                text: "check"
+                                iconSize: 8
+                                color: Appearance.colors.colOnPrimary
                             }
-                            StyledText {
-                                text: SecurityService.enrolledFingers.length > 0
-                                    ? Translation.tr("%1 Active").arg(SecurityService.enrolledFingers.length)
-                                    : Translation.tr("None")
-                                font.pixelSize: Appearance.font.pixelSize.smaller
-                                color: SecurityService.enrolledFingers.length > 0
-                                    ? Appearance.colors.colPrimary
-                                    : Appearance.colors.colOutlineVariant
-                            }
+                        }
+
+                        StyledToolTip {
+                            extraVisibleCondition: fpIconMouse.containsMouse
+                            text: SecurityService.enrolledFingers.length > 0
+                                ? Translation.tr("Fingerprint: %1 active • Click to enroll more").arg(SecurityService.enrolledFingers.length)
+                                : Translation.tr("Fingerprint: None enrolled • Click to enroll")
                         }
                     }
 
-                    // Password Tile
+                    // 2. Password Status Icon
                     Rectangle {
-                        implicitWidth: passTileCol.implicitWidth + 20
-                        implicitHeight: 48
-                        radius: Appearance.rounding.small
-                        color: Appearance.colors.colLayer2Base
+                        implicitWidth: 42
+                        implicitHeight: 42
+                        radius: Appearance.rounding.full
+                        color: ColorUtils.transparentize(Appearance.colors.colPrimary, 0.85)
                         border.width: 1
-                        border.color: Appearance.colors.colLayer0Border
+                        border.color: ColorUtils.transparentize(Appearance.colors.colPrimary, 0.6)
 
-                        ColumnLayout {
-                            id: passTileCol
+                        MouseArea {
+                            id: passIconMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: curPassInput.forceActiveFocus()
+                        }
+
+                        MaterialSymbol {
                             anchors.centerIn: parent
-                            spacing: 2
+                            text: "lock"
+                            iconSize: 20
+                            color: Appearance.colors.colPrimary
+                        }
 
-                            RowLayout {
-                                spacing: 4
-                                MaterialSymbol {
-                                    text: "lock"
-                                    iconSize: 14
-                                    color: Appearance.colors.colPrimary
-                                }
-                                StyledText {
-                                    text: Translation.tr("Password")
-                                    font.pixelSize: Appearance.font.pixelSize.smaller
-                                    font.weight: Font.Medium
-                                    color: Appearance.colors.colOnLayer0
-                                }
+                        // Verified Status Micro-Dot
+                        Rectangle {
+                            anchors.top: parent.top
+                            anchors.right: parent.right
+                            anchors.margins: 1
+                            implicitWidth: 12
+                            implicitHeight: 12
+                            radius: Appearance.rounding.full
+                            color: Appearance.colors.colPrimary
+                            border.width: 2
+                            border.color: Appearance.colors.colLayer1Base
+
+                            MaterialSymbol {
+                                anchors.centerIn: parent
+                                text: "check"
+                                iconSize: 8
+                                color: Appearance.colors.colOnPrimary
                             }
-                            StyledText {
-                                text: Translation.tr("Configured")
-                                font.pixelSize: Appearance.font.pixelSize.smaller
-                                color: Appearance.colors.colPrimary
-                            }
+                        }
+
+                        StyledToolTip {
+                            extraVisibleCondition: passIconMouse.containsMouse
+                            text: Translation.tr("Password: Protected • Click to change password")
+                        }
+                    }
+
+                    // 3. Sensor Hardware Status Icon
+                    Rectangle {
+                        implicitWidth: 42
+                        implicitHeight: 42
+                        radius: Appearance.rounding.full
+                        color: SecurityService.available
+                            ? ColorUtils.transparentize(Appearance.colors.colPrimary, 0.85)
+                            : ColorUtils.transparentize(Appearance.colors.colError, 0.85)
+                        border.width: 1
+                        border.color: SecurityService.available
+                            ? ColorUtils.transparentize(Appearance.colors.colPrimary, 0.6)
+                            : ColorUtils.transparentize(Appearance.colors.colError, 0.6)
+
+                        MouseArea {
+                            id: sensorIconMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: SecurityService.refresh()
+                        }
+
+                        MaterialSymbol {
+                            anchors.centerIn: parent
+                            text: SecurityService.available ? "sensors" : "sensors_off"
+                            iconSize: 20
+                            color: SecurityService.available ? Appearance.colors.colPrimary : Appearance.colors.colError
+                        }
+
+                        StyledToolTip {
+                            extraVisibleCondition: sensorIconMouse.containsMouse
+                            text: SecurityService.available
+                                ? Translation.tr("Sensor: %1 (Ready)\nClick to refresh hardware").arg(SecurityService.deviceName)
+                                : Translation.tr("Sensor: Offline or not detected\nClick to refresh hardware")
                         }
                     }
                 }
@@ -611,6 +677,17 @@ Item {
                             text: "security"
                             iconSize: 18
                             color: Appearance.colors.colOutlineVariant
+
+                            MouseArea {
+                                id: secInfoMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                            }
+
+                            StyledToolTip {
+                                extraVisibleCondition: secInfoMouse.containsMouse
+                                text: Translation.tr("Secured via system PAM authentication")
+                            }
                         }
                     }
 
@@ -671,6 +748,7 @@ Item {
                                         iconSize: 16
                                         color: Appearance.colors.colOutlineVariant
                                     }
+                                    StyledToolTip { text: root.showCurrentPassword ? Translation.tr("Hide password") : Translation.tr("Show password") }
                                 }
                             }
                         }
@@ -733,6 +811,7 @@ Item {
                                         iconSize: 16
                                         color: Appearance.colors.colOutlineVariant
                                     }
+                                    StyledToolTip { text: root.showNewPassword ? Translation.tr("Hide password") : Translation.tr("Show password") }
                                 }
                             }
                         }
@@ -820,6 +899,7 @@ Item {
                                         iconSize: 16
                                         color: Appearance.colors.colOutlineVariant
                                     }
+                                    StyledToolTip { text: root.showConfirmPassword ? Translation.tr("Hide password") : Translation.tr("Show password") }
                                 }
                             }
                         }
@@ -934,7 +1014,7 @@ Item {
         // ================= BENTO TILE 3: SYSTEM INTEGRATION BANNER =================
         Rectangle {
             Layout.fillWidth: true
-            implicitHeight: pamRow.implicitHeight + 20
+            implicitHeight: pamRow.implicitHeight + 24
             radius: Appearance.rounding.normal
             color: Appearance.colors.colLayer1Base
             border.width: 1
@@ -942,9 +1022,11 @@ Item {
 
             RowLayout {
                 id: pamRow
-                anchors.fill: parent
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
                 anchors.margins: 14
-                spacing: 14
+                spacing: 12
 
                 Rectangle {
                     implicitWidth: 38
@@ -962,16 +1044,20 @@ Item {
 
                 ColumnLayout {
                     Layout.fillWidth: true
+                    Layout.preferredWidth: 0
                     spacing: 2
 
                     StyledText {
+                        Layout.fillWidth: true
                         text: Translation.tr("Biometric Lock Screen & SDDM Integration")
                         font.pixelSize: Appearance.font.pixelSize.small
                         font.weight: Font.Medium
                         color: Appearance.colors.colOnLayer0
+                        elide: Text.ElideRight
                     }
 
                     StyledText {
+                        Layout.fillWidth: true
                         text: Translation.tr("Quickshell Lock Screen and SDDM are configured to unlock automatically using enrolled fingerprints via pam_fprintd.so.")
                         font.pixelSize: Appearance.font.pixelSize.smaller
                         color: Appearance.colors.colOutlineVariant
@@ -980,24 +1066,54 @@ Item {
                 }
 
                 Rectangle {
-                    implicitWidth: pamBadgeText.implicitWidth + 12
-                    implicitHeight: 22
+                    Layout.alignment: Qt.AlignVCenter
+                    implicitWidth: pamBadgeRow.implicitWidth + 18
+                    implicitHeight: 26
                     radius: Appearance.rounding.full
                     color: SecurityService.enrolledFingers.length > 0
                         ? ColorUtils.transparentize(Appearance.colors.colPrimary, 0.8)
                         : Appearance.colors.colLayer2Base
+                    border.width: 1
+                    border.color: SecurityService.enrolledFingers.length > 0
+                        ? ColorUtils.transparentize(Appearance.colors.colPrimary, 0.6)
+                        : Appearance.colors.colLayer0Border
 
-                    StyledText {
-                        id: pamBadgeText
+                    MouseArea {
+                        id: pamBadgeMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                    }
+
+                    RowLayout {
+                        id: pamBadgeRow
                         anchors.centerIn: parent
+                        spacing: 5
+
+                        MaterialSymbol {
+                            text: SecurityService.enrolledFingers.length > 0 ? "verified" : "lock"
+                            iconSize: 13
+                            color: SecurityService.enrolledFingers.length > 0
+                                ? Appearance.colors.colPrimary
+                                : Appearance.colors.colOutlineVariant
+                        }
+
+                        StyledText {
+                            text: SecurityService.enrolledFingers.length > 0
+                                ? Translation.tr("Biometrics Active")
+                                : Translation.tr("Password Only")
+                            font.pixelSize: Appearance.font.pixelSize.smaller
+                            font.weight: Font.Medium
+                            color: SecurityService.enrolledFingers.length > 0
+                                ? Appearance.colors.colPrimary
+                                : Appearance.colors.colOutlineVariant
+                        }
+                    }
+
+                    StyledToolTip {
+                        extraVisibleCondition: pamBadgeMouse.containsMouse
                         text: SecurityService.enrolledFingers.length > 0
-                            ? Translation.tr("Biometrics Active")
-                            : Translation.tr("Password Only")
-                        font.pixelSize: Appearance.font.pixelSize.smaller
-                        font.weight: Font.Medium
-                        color: SecurityService.enrolledFingers.length > 0
-                            ? Appearance.colors.colPrimary
-                            : Appearance.colors.colOutlineVariant
+                            ? Translation.tr("Biometrics Active: PAM fprintd module is enabled for Lock Screen and SDDM login.")
+                            : Translation.tr("Password Only: No fingerprints enrolled. PAM will fallback to password authentication.")
                     }
                 }
             }
