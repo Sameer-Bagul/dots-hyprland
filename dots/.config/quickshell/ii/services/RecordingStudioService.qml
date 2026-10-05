@@ -154,10 +154,8 @@ Singleton {
         // Execute recorder in background
         Quickshell.execDetached(args);
 
-        // If Auto-Zoom is enabled at start, gently activate cursor follow zoom
-        if (root.autoZoomEnabled) {
-            root.setZoom(true);
-        }
+        // Keep screen at 1.0 by default to avoid disorienting magnification
+        root.setZoom(false);
     }
 
     // Stop and finalize MP4
