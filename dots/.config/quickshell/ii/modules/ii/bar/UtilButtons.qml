@@ -1,7 +1,9 @@
 import qs
+import qs.services
 import qs.modules.common
 import qs.modules.common.widgets
 import QtQuick
+import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Hyprland
@@ -37,17 +39,29 @@ Item {
         }
 
         Loader {
-            active: Config.options.bar.utilButtons.showScreenRecord
-            visible: Config.options.bar.utilButtons.showScreenRecord
+            active: Config.options.bar.utilButtons.showScreenRecord || RecordingStudioService.isRecording
+            visible: Config.options.bar.utilButtons.showScreenRecord || RecordingStudioService.isRecording
             sourceComponent: CircleUtilButton {
+                id: recordUtilBtn
                 Layout.alignment: Qt.AlignVCenter
-                onClicked: Quickshell.execDetached([Directories.recordScriptPath])
+                colBackground: RecordingStudioService.isRecording ? Appearance.m3colors.m3error : Appearance.colors.colLayer2
+                colBackgroundHover: RecordingStudioService.isRecording ? Qt.darker(Appearance.m3colors.m3error, 1.1) : Appearance.colors.colLayer2Hover
+                onClicked: {
+                    if (RecordingStudioService.isRecording) {
+                        RecordingStudioService.stopRecording();
+                    } else {
+                        RecordingStudioService.openStudioSetup();
+                    }
+                }
+                altAction: () => {
+                    Quickshell.execDetached([Directories.recordScriptPath]);
+                }
                 MaterialSymbol {
                     horizontalAlignment: Qt.AlignHCenter
                     fill: 1
-                    text: "videocam"
+                    text: RecordingStudioService.isRecording ? "stop" : "videocam"
                     iconSize: Appearance.font.pixelSize.large
-                    color: Appearance.colors.colOnLayer2
+                    color: RecordingStudioService.isRecording ? Appearance.m3colors.m3onError : Appearance.colors.colOnLayer2
                 }
             }
         }

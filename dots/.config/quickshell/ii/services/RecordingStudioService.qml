@@ -51,7 +51,7 @@ Singleton {
     property string systemAudioDevice: "default"
 
     // ================= Cursor Tracking & Zoom =================
-    property bool autoZoomEnabled: true
+    property bool autoZoomEnabled: false
     property bool zoomActive: false
     property real zoomFactor: 1.35
 
