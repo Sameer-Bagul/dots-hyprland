@@ -83,6 +83,12 @@ hl.bind("SUPER + SHIFT + X", hl.dsp.exec_cmd(
 hl.bind("SUPER + SHIFT + C", hl.dsp.exec_cmd("hyprpicker -a"),
     { description = "Utilities: Pick color #RRGGBB >> clipboard" })
 --# Recording stuff
+hl.bind("SUPER + R", hl.dsp.global("quickshell:studioRecorderOpen"),
+    { locked = true, description = "Recordly: Studio Screen Recorder (Camera, Mic, Zoom)" })
+hl.bind("SUPER + R", hl.dsp.exec_cmd(qsIpcCall .. " studio open"), { locked = true })
+hl.bind("SUPER + Z", hl.dsp.global("quickshell:studioZoomToggle"),
+    { locked = true, description = "Recordly: Toggle cursor zoom & follow" })
+hl.bind("SUPER + Z", hl.dsp.exec_cmd(qsIpcCall .. " studio toggleZoom"), { locked = true })
 hl.bind("SUPER + SHIFT + R", hl.dsp.global("quickshell:regionRecord"),
     { locked = true, description = "Utilities: Record region (no sound)" })
 hl.bind("SUPER + SHIFT + R", hl.dsp.exec_cmd(qsIsAlive .. " || " .. qsScripts .. "/videos/record.sh"), { locked = true })

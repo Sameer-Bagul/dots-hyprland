@@ -10,8 +10,8 @@ import qs.modules.ii.overlay
 
 StyledOverlayWidget {
     id: root
-    minimumWidth: 310
-    minimumHeight: 130
+    minimumWidth: 380
+    minimumHeight: 140
 
     contentItem: OverlayBackground {
         id: contentItem
@@ -61,30 +61,80 @@ StyledOverlayWidget {
                         Quickshell.execDetached([Directories.recordScriptPath, "--fullscreen", "--sound"]);
                     }
                 }
+
+                BigRecorderButton {
+                    materialSymbol: "video_camera_front"
+                    name: "Studio Recording (Recordly)"
+                    isStudio: true
+                    onClicked: {
+                        GlobalStates.overlayOpen = false;
+                        RecordingStudioService.openStudioSetup();
+                    }
+                }
             }
 
-            RippleButton {
+            RowLayout {
                 Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
-                Layout.fillWidth: false
-                buttonRadius: height / 2
-                colBackground: Appearance.colors.colLayer3
-                colBackgroundHover: Appearance.colors.colLayer3Hover
-                colRipple: Appearance.colors.colLayer3Active
-                onClicked: {
-                    GlobalStates.overlayOpen = false;
-                    Qt.openUrlExternally(`file://${Config.options.screenRecord.savePath}`);
-                }
-                contentItem: Row {
-                    anchors.centerIn: parent
-                    spacing: 6
-                    MaterialSymbol {
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: "animated_images"
-                        iconSize: 20
+                spacing: 8
+
+                RippleButton {
+                    Layout.fillWidth: false
+                    buttonRadius: height / 2
+                    colBackground: Qt.rgba(Appearance.m3colors.m3primary.r, Appearance.m3colors.m3primary.g, Appearance.m3colors.m3primary.b, 0.16)
+                    colBackgroundHover: Qt.rgba(Appearance.m3colors.m3primary.r, Appearance.m3colors.m3primary.g, Appearance.m3colors.m3primary.b, 0.26)
+                    colRipple: Appearance.m3colors.m3primaryContainer
+                    onClicked: {
+                        GlobalStates.overlayOpen = false;
+                        RecordingStudioService.openStudioSetup();
                     }
-                    StyledText {
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: Translation.tr("Open recordings folder")
+                    contentItem: Row {
+                        anchors.centerIn: parent
+                        spacing: 6
+                        leftPadding: 12
+                        rightPadding: 12
+                        topPadding: 6
+                        bottomPadding: 6
+                        MaterialSymbol {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: "auto_awesome"
+                            iconSize: 18
+                            color: Appearance.m3colors.m3primary
+                        }
+                        StyledText {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: Translation.tr("Recordly Studio")
+                            font.bold: true
+                            color: Appearance.m3colors.m3primary
+                        }
+                    }
+                }
+
+                RippleButton {
+                    Layout.fillWidth: false
+                    buttonRadius: height / 2
+                    colBackground: Appearance.colors.colLayer3
+                    colBackgroundHover: Appearance.colors.colLayer3Hover
+                    colRipple: Appearance.colors.colLayer3Active
+                    onClicked: {
+                        GlobalStates.overlayOpen = false;
+                        Qt.openUrlExternally(`file://${Config.options.screenRecord.savePath}`);
+                    }
+                    contentItem: Row {
+                        anchors.centerIn: parent
+                        spacing: 6
+                        leftPadding: 12
+                        rightPadding: 12
+                        topPadding: 6
+                        bottomPadding: 6
+                        MaterialSymbol {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: "folder_open"
+                            iconSize: 18
+                        }
+                        StyledText {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: Translation.tr("Recordings")
+                        }
                     }
                 }
             }
@@ -95,13 +145,14 @@ StyledOverlayWidget {
         id: bigButton
         required property string materialSymbol
         required property string name
+        property bool isStudio: false
         implicitHeight: 66
         implicitWidth: 66
         buttonRadius: height / 2
 
-        colBackground: Appearance.colors.colLayer3
-        colBackgroundHover: Appearance.colors.colLayer3Hover
-        colRipple: Appearance.colors.colLayer3Active
+        colBackground: isStudio ? Appearance.m3colors.m3primaryContainer : Appearance.colors.colLayer3
+        colBackgroundHover: isStudio ? Qt.darker(Appearance.m3colors.m3primaryContainer, 1.1) : Appearance.colors.colLayer3Hover
+        colRipple: isStudio ? Appearance.m3colors.m3primary : Appearance.colors.colLayer3Active
 
         contentItem: MaterialSymbol {
             anchors.centerIn: parent
@@ -109,6 +160,7 @@ StyledOverlayWidget {
             verticalAlignment: Text.AlignVCenter
             text: bigButton.materialSymbol
             iconSize: 28
+            color: bigButton.isStudio ? Appearance.m3colors.m3onPrimaryContainer : Appearance.colors.colText
         }
 
         StyledToolTip {
