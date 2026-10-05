@@ -24,653 +24,877 @@ Item {
     property string deleteConfirmFinger: ""
     property bool showDeleteDialog: false
 
+    function getPasswordStrength(pass) {
+        if (!pass || pass.length === 0) return 0;
+        let score = 0;
+        if (pass.length >= 6) score++;
+        if (pass.length >= 10) score++;
+        if (/[A-Z]/.test(pass) && /[a-z]/.test(pass)) score++;
+        if (/[0-9]/.test(pass) || /[^A-Za-z0-9]/.test(pass)) score++;
+        return Math.min(4, Math.max(1, score));
+    }
+
+    readonly property int passStrength: getPasswordStrength(newPasswordInput)
+    readonly property color passStrengthColor: {
+        if (passStrength <= 1) return Appearance.colors.colError;
+        if (passStrength === 2) return "#E5A04B";
+        if (passStrength === 3) return "#E5C07B";
+        return Appearance.colors.colPrimary;
+    }
+    readonly property string passStrengthLabel: {
+        if (newPasswordInput.length === 0) return "";
+        if (passStrength <= 1) return Translation.tr("Weak");
+        if (passStrength === 2) return Translation.tr("Fair");
+        if (passStrength === 3) return Translation.tr("Good");
+        return Translation.tr("Strong");
+    }
+
     Component.onCompleted: {
         SecurityService.refresh();
     }
 
     ContentPage {
         anchors.fill: parent
-        forceWidth: true
+        forceWidth: false
+        baseWidth: Math.min(840, root.width - 40)
 
-        // ================= 1. USER OVERVIEW SECTION =================
-        ContentSection {
-            icon: "manage_accounts"
-            title: Translation.tr("User Account")
+        // ================= HERO BENTO CARD: USER & SECURITY STATUS =================
+        Rectangle {
+            Layout.fillWidth: true
+            implicitHeight: heroRow.implicitHeight + 28
+            radius: Appearance.rounding.normal
+            color: Appearance.colors.colLayer1Base
+            border.width: 1
+            border.color: Appearance.colors.colLayer0Border
 
-            Rectangle {
-                Layout.fillWidth: true
-                implicitHeight: userOverviewLayout.implicitHeight + 24
-                radius: Appearance.rounding.normal
-                color: Appearance.colors.colLayer1
+            RowLayout {
+                id: heroRow
+                anchors.fill: parent
+                anchors.margins: 16
+                spacing: 16
 
-                RowLayout {
-                    id: userOverviewLayout
-                    anchors.fill: parent
-                    anchors.margins: 12
-                    spacing: 14
+                // User Avatar with Ring
+                Rectangle {
+                    implicitWidth: 54
+                    implicitHeight: 54
+                    radius: Appearance.rounding.full
+                    color: ColorUtils.transparentize(Appearance.colors.colPrimary, 0.82)
+                    border.width: 2
+                    border.color: Appearance.colors.colPrimary
 
-                    // User Avatar
-                    Rectangle {
-                        implicitWidth: 48
-                        implicitHeight: 48
-                        radius: Appearance.rounding.full
-                        color: Appearance.colors.colPrimaryContainer
-
-                        MaterialSymbol {
-                            anchors.centerIn: parent
-                            text: "person"
-                            iconSize: 28
-                            color: Appearance.colors.colOnPrimaryContainer
-                        }
+                    MaterialSymbol {
+                        anchors.centerIn: parent
+                        text: "person"
+                        iconSize: 32
+                        color: Appearance.colors.colPrimary
                     }
+                }
 
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 2
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 4
 
+                    RowLayout {
+                        spacing: 8
                         StyledText {
                             text: SystemInfo.username
-                            font.pixelSize: Appearance.font.pixelSize.large
+                            font.pixelSize: Appearance.font.pixelSize.large + 2
                             font.weight: Font.DemiBold
                             color: Appearance.colors.colOnLayer0
                         }
 
-                        RowLayout {
-                            spacing: 8
+                        Rectangle {
+                            implicitWidth: adminChipText.implicitWidth + 14
+                            implicitHeight: 22
+                            radius: Appearance.rounding.full
+                            color: ColorUtils.transparentize(Appearance.colors.colPrimary, 0.85)
+                            border.width: 1
+                            border.color: ColorUtils.transparentize(Appearance.colors.colPrimary, 0.6)
 
-                            // Fingerprint status chip
-                            Rectangle {
-                                implicitWidth: fpChipText.implicitWidth + 12
-                                implicitHeight: 20
-                                radius: Appearance.rounding.full
-                                color: SecurityService.enrolledFingers.length > 0
-                                    ? ColorUtils.transparentize(Appearance.colors.colPrimary, 0.8)
-                                    : Appearance.colors.colLayer2
+                            RowLayout {
+                                id: adminChipText
+                                anchors.centerIn: parent
+                                spacing: 4
 
-                                StyledText {
-                                    id: fpChipText
-                                    anchors.centerIn: parent
-                                    text: SecurityService.enrolledFingers.length > 0
-                                        ? Translation.tr("%1 Fingerprint(s) Enrolled").arg(SecurityService.enrolledFingers.length)
-                                        : Translation.tr("No Fingerprints Enrolled")
-                                    font.pixelSize: Appearance.font.pixelSize.smaller
-                                    color: SecurityService.enrolledFingers.length > 0
-                                        ? Appearance.colors.colPrimary
-                                        : Appearance.colors.colOutlineVariant
+                                MaterialSymbol {
+                                    text: "shield"
+                                    iconSize: 12
+                                    color: Appearance.colors.colPrimary
                                 }
-                            }
-
-                            // Password status chip
-                            Rectangle {
-                                implicitWidth: passChipText.implicitWidth + 12
-                                implicitHeight: 20
-                                radius: Appearance.rounding.full
-                                color: ColorUtils.transparentize(Appearance.colors.colPrimary, 0.8)
 
                                 StyledText {
-                                    id: passChipText
-                                    anchors.centerIn: parent
-                                    text: Translation.tr("Password Protected")
+                                    text: Translation.tr("Local Administrator")
                                     font.pixelSize: Appearance.font.pixelSize.smaller
+                                    font.weight: Font.Medium
                                     color: Appearance.colors.colPrimary
                                 }
                             }
                         }
                     }
+
+                    StyledText {
+                        Layout.fillWidth: true
+                        text: Translation.tr("Biometric Authentication & System Security Hub")
+                        font.pixelSize: Appearance.font.pixelSize.smaller
+                        color: Appearance.colors.colOutlineVariant
+                        elide: Text.ElideRight
+                    }
+                }
+
+                // Quick Status Tiles
+                RowLayout {
+                    spacing: 8
+
+                    // Fingerprints Tile
+                    Rectangle {
+                        implicitWidth: fpTileCol.implicitWidth + 20
+                        implicitHeight: 48
+                        radius: Appearance.rounding.small
+                        color: Appearance.colors.colLayer2Base
+                        border.width: 1
+                        border.color: SecurityService.enrolledFingers.length > 0
+                            ? ColorUtils.transparentize(Appearance.colors.colPrimary, 0.7)
+                            : Appearance.colors.colLayer0Border
+
+                        ColumnLayout {
+                            id: fpTileCol
+                            anchors.centerIn: parent
+                            spacing: 2
+
+                            RowLayout {
+                                spacing: 4
+                                MaterialSymbol {
+                                    text: "fingerprint"
+                                    iconSize: 14
+                                    color: SecurityService.enrolledFingers.length > 0
+                                        ? Appearance.colors.colPrimary
+                                        : Appearance.colors.colOutlineVariant
+                                }
+                                StyledText {
+                                    text: Translation.tr("Fingerprint")
+                                    font.pixelSize: Appearance.font.pixelSize.smaller
+                                    font.weight: Font.Medium
+                                    color: Appearance.colors.colOnLayer0
+                                }
+                            }
+                            StyledText {
+                                text: SecurityService.enrolledFingers.length > 0
+                                    ? Translation.tr("%1 Active").arg(SecurityService.enrolledFingers.length)
+                                    : Translation.tr("None")
+                                font.pixelSize: Appearance.font.pixelSize.smaller
+                                color: SecurityService.enrolledFingers.length > 0
+                                    ? Appearance.colors.colPrimary
+                                    : Appearance.colors.colOutlineVariant
+                            }
+                        }
+                    }
+
+                    // Password Tile
+                    Rectangle {
+                        implicitWidth: passTileCol.implicitWidth + 20
+                        implicitHeight: 48
+                        radius: Appearance.rounding.small
+                        color: Appearance.colors.colLayer2Base
+                        border.width: 1
+                        border.color: Appearance.colors.colLayer0Border
+
+                        ColumnLayout {
+                            id: passTileCol
+                            anchors.centerIn: parent
+                            spacing: 2
+
+                            RowLayout {
+                                spacing: 4
+                                MaterialSymbol {
+                                    text: "lock"
+                                    iconSize: 14
+                                    color: Appearance.colors.colPrimary
+                                }
+                                StyledText {
+                                    text: Translation.tr("Password")
+                                    font.pixelSize: Appearance.font.pixelSize.smaller
+                                    font.weight: Font.Medium
+                                    color: Appearance.colors.colOnLayer0
+                                }
+                            }
+                            StyledText {
+                                text: Translation.tr("Configured")
+                                font.pixelSize: Appearance.font.pixelSize.smaller
+                                color: Appearance.colors.colPrimary
+                            }
+                        }
+                    }
                 }
             }
         }
 
-        // ================= 2. FINGERPRINT AUTHENTICATION =================
-        ContentSection {
-            icon: "fingerprint"
-            title: Translation.tr("Fingerprint Authentication")
+        // ================= TWO-COLUMN BENTO GRID =================
+        GridLayout {
+            Layout.fillWidth: true
+            columns: (root.width > 780) ? 2 : 1
+            rowSpacing: 14
+            columnSpacing: 14
 
-            // Hardware Device Info Banner
+            // ---------------- BENTO TILE 1: BIOMETRICS HUB ----------------
             Rectangle {
                 Layout.fillWidth: true
-                implicitHeight: devInfoLayout.implicitHeight + 16
-                radius: Appearance.rounding.small
-                color: SecurityService.available
-                    ? ColorUtils.transparentize(Appearance.colors.colPrimary, 0.9)
-                    : ColorUtils.transparentize(Appearance.colors.colOutlineVariant, 0.9)
+                Layout.fillHeight: true
+                implicitHeight: bentoTile1Col.implicitHeight + 28
+                radius: Appearance.rounding.normal
+                color: Appearance.colors.colLayer1Base
                 border.width: 1
-                border.color: SecurityService.available
-                    ? ColorUtils.transparentize(Appearance.colors.colPrimary, 0.7)
-                    : ColorUtils.transparentize(Appearance.colors.colOutlineVariant, 0.7)
+                border.color: Appearance.colors.colLayer0Border
 
-                RowLayout {
-                    id: devInfoLayout
+                ColumnLayout {
+                    id: bentoTile1Col
                     anchors.fill: parent
-                    anchors.margins: 10
-                    spacing: 10
+                    anchors.margins: 16
+                    spacing: 12
 
-                    MaterialSymbol {
-                        text: SecurityService.available ? "sensors" : "sensors_off"
-                        iconSize: 22
-                        color: SecurityService.available ? Appearance.colors.colPrimary : Appearance.colors.colOutlineVariant
-                    }
-
-                    ColumnLayout {
+                    // Card Title
+                    RowLayout {
                         Layout.fillWidth: true
-                        spacing: 1
-
-                        StyledText {
-                            text: SecurityService.available ? SecurityService.deviceName : Translation.tr("No fingerprint sensor detected")
-                            font.pixelSize: Appearance.font.pixelSize.normal
-                            font.weight: Font.Medium
-                            color: Appearance.colors.colOnLayer0
-                        }
-
-                        StyledText {
-                            text: SecurityService.available
-                                ? Translation.tr("Type: %1 sensor • %2 enrollment stages • Driver: fprintd").arg(SecurityService.scanType).arg(SecurityService.numStages)
-                                : Translation.tr("Connect a supported fingerprint reader to enable biometric authentication.")
-                            font.pixelSize: Appearance.font.pixelSize.smaller
-                            color: Appearance.colors.colOutlineVariant
-                        }
-                    }
-
-                    RippleButton {
-                        implicitWidth: 32
-                        implicitHeight: 32
-                        buttonRadius: Appearance.rounding.verysmall
-                        onClicked: SecurityService.refresh()
-
-                        contentItem: MaterialSymbol {
-                            anchors.centerIn: parent
-                            text: "refresh"
-                            iconSize: 18
-                            color: Appearance.colors.colOnLayer0
-                        }
-                        StyledToolTip { text: Translation.tr("Refresh device status") }
-                    }
-                }
-            }
-
-            // List of Enrolled Fingerprints
-            ContentSubsection {
-                title: Translation.tr("Enrolled Fingerprints")
-                visible: SecurityService.available
-
-                // Empty state if none enrolled
-                Rectangle {
-                    Layout.fillWidth: true
-                    implicitHeight: 48
-                    radius: Appearance.rounding.small
-                    color: Appearance.colors.colLayer1
-                    visible: SecurityService.enrolledFingers.length === 0
-
-                    StyledText {
-                        anchors.centerIn: parent
-                        text: Translation.tr("No fingerprints enrolled yet. Click \"Enroll New Fingerprint\" below.")
-                        font.pixelSize: Appearance.font.pixelSize.small
-                        color: Appearance.colors.colOutlineVariant
-                    }
-                }
-
-                // Repeater for enrolled fingers
-                Repeater {
-                    model: SecurityService.enrolledFingers
-                    delegate: Rectangle {
-                        required property string modelData
-                        required property int index
-
-                        Layout.fillWidth: true
-                        implicitHeight: 44
-                        radius: Appearance.rounding.small
-                        color: Appearance.colors.colLayer1
-                        border.width: 1
-                        border.color: ColorUtils.transparentize(Appearance.colors.colOutlineVariant, 0.8)
-
-                        RowLayout {
-                            anchors.fill: parent
-                            anchors.leftMargin: 12
-                            anchors.rightMargin: 8
-                            spacing: 10
-
-                            MaterialSymbol {
-                                text: "fingerprint"
-                                iconSize: 22
-                                color: Appearance.colors.colPrimary
-                            }
-
-                            StyledText {
-                                Layout.fillWidth: true
-                                text: SecurityService.getFingerDisplayName(modelData)
-                                font.pixelSize: Appearance.font.pixelSize.normal
-                                font.weight: Font.Medium
-                                color: Appearance.colors.colOnLayer0
-                            }
-
-                            StyledText {
-                                text: modelData
-                                font.pixelSize: Appearance.font.pixelSize.smaller
-                                color: Appearance.colors.colOutlineVariant
-                            }
-
-                            // Test verification button
-                            RippleButton {
-                                implicitWidth: 32
-                                implicitHeight: 32
-                                buttonRadius: Appearance.rounding.verysmall
-                                onClicked: SecurityService.startVerify(modelData)
-
-                                contentItem: MaterialSymbol {
-                                    anchors.centerIn: parent
-                                    text: "check_circle"
-                                    iconSize: 18
-                                    color: Appearance.colors.colOutlineVariant
-                                }
-                                StyledToolTip { text: Translation.tr("Test verify this fingerprint") }
-                            }
-
-                            // Delete button
-                            RippleButton {
-                                implicitWidth: 32
-                                implicitHeight: 32
-                                buttonRadius: Appearance.rounding.verysmall
-                                onClicked: {
-                                    root.deleteConfirmFinger = modelData;
-                                    root.showDeleteDialog = true;
-                                }
-
-                                contentItem: MaterialSymbol {
-                                    anchors.centerIn: parent
-                                    text: "delete_outline"
-                                    iconSize: 18
-                                    color: Appearance.colors.colError
-                                }
-                                StyledToolTip { text: Translation.tr("Delete this fingerprint") }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Live Verification Feedback Banner
-            Rectangle {
-                Layout.fillWidth: true
-                implicitHeight: verifyLayout.implicitHeight + 14
-                visible: SecurityService.isVerifying
-                radius: Appearance.rounding.small
-                color: SecurityService.verifyMatched
-                    ? ColorUtils.transparentize(Appearance.colors.colPrimary, 0.85)
-                    : (SecurityService.verifyFailed
-                        ? ColorUtils.transparentize(Appearance.colors.colError, 0.85)
-                        : ColorUtils.transparentize(Appearance.colors.colLayer2, 0.5))
-                border.width: 1
-                border.color: SecurityService.verifyMatched
-                    ? Appearance.colors.colPrimary
-                    : (SecurityService.verifyFailed ? Appearance.colors.colError : Appearance.colors.colOutline)
-
-                RowLayout {
-                    id: verifyLayout
-                    anchors.fill: parent
-                    anchors.margins: 8
-                    spacing: 8
-
-                    MaterialSymbol {
-                        text: SecurityService.verifyMatched ? "check_circle" : (SecurityService.verifyFailed ? "error" : "sensors")
-                        iconSize: 20
-                        color: SecurityService.verifyMatched
-                            ? Appearance.colors.colPrimary
-                            : (SecurityService.verifyFailed ? Appearance.colors.colError : Appearance.colors.colOnLayer0)
-                    }
-
-                    StyledText {
-                        Layout.fillWidth: true
-                        text: SecurityService.verifyMessage
-                        font.pixelSize: Appearance.font.pixelSize.small
-                        color: Appearance.colors.colOnLayer0
-                    }
-
-                    RippleButton {
-                        implicitWidth: 26
-                        implicitHeight: 26
-                        buttonRadius: Appearance.rounding.verysmall
-                        onClicked: SecurityService.cancelVerify()
-
-                        contentItem: MaterialSymbol {
-                            anchors.centerIn: parent
-                            text: "close"
-                            iconSize: 16
-                            color: Appearance.colors.colOutlineVariant
-                        }
-                    }
-                }
-            }
-
-            // Actions Row: Enroll Button
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: 8
-                visible: SecurityService.available
-
-                RippleButton {
-                    implicitHeight: 38
-                    implicitWidth: enrollBtnLayout.implicitWidth + 20
-                    buttonRadius: Appearance.rounding.small
-                    colBackground: Appearance.colors.colPrimary
-                    colBackgroundHover: Appearance.colors.colPrimaryHover
-                    onClicked: {
-                        root.showEnrollDialog = true;
-                    }
-
-                    contentItem: RowLayout {
-                        id: enrollBtnLayout
-                        anchors.centerIn: parent
-                        spacing: 6
-
-                        MaterialSymbol {
-                            text: "add"
-                            iconSize: 18
-                            color: Appearance.colors.colOnPrimary
-                        }
-
-                        StyledText {
-                            text: Translation.tr("Enroll New Fingerprint")
-                            font.pixelSize: Appearance.font.pixelSize.normal
-                            font.weight: Font.Medium
-                            color: Appearance.colors.colOnPrimary
-                        }
-                    }
-                }
-
-                RippleButton {
-                    implicitHeight: 38
-                    implicitWidth: verifyAllBtnLayout.implicitWidth + 20
-                    buttonRadius: Appearance.rounding.small
-                    colBackground: Appearance.colors.colLayer2
-                    visible: SecurityService.enrolledFingers.length > 0
-                    onClicked: SecurityService.startVerify()
-
-                    contentItem: RowLayout {
-                        id: verifyAllBtnLayout
-                        anchors.centerIn: parent
-                        spacing: 6
 
                         MaterialSymbol {
                             text: "fingerprint"
-                            iconSize: 18
-                            color: Appearance.colors.colOnLayer0
-                        }
-
-                        StyledText {
-                            text: Translation.tr("Test Verification")
-                            font.pixelSize: Appearance.font.pixelSize.normal
-                            color: Appearance.colors.colOnLayer0
-                        }
-                    }
-                }
-
-                Item { Layout.fillWidth: true }
-            }
-        }
-
-        // ================= 3. PASSWORD MANAGEMENT =================
-        ContentSection {
-            icon: "lock"
-            title: Translation.tr("Change Password")
-
-            ColumnLayout {
-                Layout.fillWidth: true
-                spacing: 10
-
-                // Current Password Input
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    spacing: 4
-
-                    StyledText {
-                        text: Translation.tr("Current Password")
-                        font.pixelSize: Appearance.font.pixelSize.small
-                        font.weight: Font.Medium
-                        color: Appearance.colors.colOnLayer0
-                    }
-
-                    Rectangle {
-                        Layout.fillWidth: true
-                        implicitHeight: 40
-                        radius: Appearance.rounding.small
-                        color: Appearance.colors.colLayer1
-                        border.width: 1
-                        border.color: currentPassField.activeFocus
-                            ? Appearance.colors.colPrimary
-                            : ColorUtils.transparentize(Appearance.colors.colOutlineVariant, 0.7)
-
-                        RowLayout {
-                            anchors.fill: parent
-                            anchors.leftMargin: 10
-                            anchors.rightMargin: 6
-                            spacing: 4
-
-                            TextField {
-                                id: currentPassField
-                                Layout.fillWidth: true
-                                Layout.fillHeight: true
-                                verticalAlignment: Text.AlignVCenter
-                                echoMode: root.showCurrentPassword ? TextInput.Normal : TextInput.Password
-                                placeholderText: Translation.tr("Enter current password")
-                                placeholderTextColor: Appearance.colors.colOutlineVariant
-                                color: Appearance.colors.colOnLayer0
-                                font.pixelSize: Appearance.font.pixelSize.normal
-                                selectByMouse: true
-                                background: null
-                                text: root.currentPasswordInput
-                                onTextChanged: root.currentPasswordInput = text
-                            }
-
-                            RippleButton {
-                                implicitWidth: 28
-                                implicitHeight: 28
-                                buttonRadius: Appearance.rounding.verysmall
-                                onClicked: root.showCurrentPassword = !root.showCurrentPassword
-
-                                contentItem: MaterialSymbol {
-                                    anchors.centerIn: parent
-                                    text: root.showCurrentPassword ? "visibility_off" : "visibility"
-                                    iconSize: 17
-                                    color: Appearance.colors.colOutlineVariant
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // New Password Input
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    spacing: 4
-
-                    StyledText {
-                        text: Translation.tr("New Password")
-                        font.pixelSize: Appearance.font.pixelSize.small
-                        font.weight: Font.Medium
-                        color: Appearance.colors.colOnLayer0
-                    }
-
-                    Rectangle {
-                        Layout.fillWidth: true
-                        implicitHeight: 40
-                        radius: Appearance.rounding.small
-                        color: Appearance.colors.colLayer1
-                        border.width: 1
-                        border.color: newPassField.activeFocus
-                            ? Appearance.colors.colPrimary
-                            : ColorUtils.transparentize(Appearance.colors.colOutlineVariant, 0.7)
-
-                        RowLayout {
-                            anchors.fill: parent
-                            anchors.leftMargin: 10
-                            anchors.rightMargin: 6
-                            spacing: 4
-
-                            TextField {
-                                id: newPassField
-                                Layout.fillWidth: true
-                                Layout.fillHeight: true
-                                verticalAlignment: Text.AlignVCenter
-                                echoMode: root.showNewPassword ? TextInput.Normal : TextInput.Password
-                                placeholderText: Translation.tr("Enter new password")
-                                placeholderTextColor: Appearance.colors.colOutlineVariant
-                                color: Appearance.colors.colOnLayer0
-                                font.pixelSize: Appearance.font.pixelSize.normal
-                                selectByMouse: true
-                                background: null
-                                text: root.newPasswordInput
-                                onTextChanged: root.newPasswordInput = text
-                            }
-
-                            RippleButton {
-                                implicitWidth: 28
-                                implicitHeight: 28
-                                buttonRadius: Appearance.rounding.verysmall
-                                onClicked: root.showNewPassword = !root.showNewPassword
-
-                                contentItem: MaterialSymbol {
-                                    anchors.centerIn: parent
-                                    text: root.showNewPassword ? "visibility_off" : "visibility"
-                                    iconSize: 17
-                                    color: Appearance.colors.colOutlineVariant
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Confirm Password Input
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    spacing: 4
-
-                    StyledText {
-                        text: Translation.tr("Confirm New Password")
-                        font.pixelSize: Appearance.font.pixelSize.small
-                        font.weight: Font.Medium
-                        color: Appearance.colors.colOnLayer0
-                    }
-
-                    Rectangle {
-                        Layout.fillWidth: true
-                        implicitHeight: 40
-                        radius: Appearance.rounding.small
-                        color: Appearance.colors.colLayer1
-                        border.width: 1
-                        border.color: confirmPassField.activeFocus
-                            ? Appearance.colors.colPrimary
-                            : ColorUtils.transparentize(Appearance.colors.colOutlineVariant, 0.7)
-
-                        RowLayout {
-                            anchors.fill: parent
-                            anchors.leftMargin: 10
-                            anchors.rightMargin: 6
-                            spacing: 4
-
-                            TextField {
-                                id: confirmPassField
-                                Layout.fillWidth: true
-                                Layout.fillHeight: true
-                                verticalAlignment: Text.AlignVCenter
-                                echoMode: root.showConfirmPassword ? TextInput.Normal : TextInput.Password
-                                placeholderText: Translation.tr("Re-enter new password")
-                                placeholderTextColor: Appearance.colors.colOutlineVariant
-                                color: Appearance.colors.colOnLayer0
-                                font.pixelSize: Appearance.font.pixelSize.normal
-                                selectByMouse: true
-                                background: null
-                                text: root.confirmPasswordInput
-                                onTextChanged: root.confirmPasswordInput = text
-                            }
-
-                            RippleButton {
-                                implicitWidth: 28
-                                implicitHeight: 28
-                                buttonRadius: Appearance.rounding.verysmall
-                                onClicked: root.showConfirmPassword = !root.showConfirmPassword
-
-                                contentItem: MaterialSymbol {
-                                    anchors.centerIn: parent
-                                    text: root.showConfirmPassword ? "visibility_off" : "visibility"
-                                    iconSize: 17
-                                    color: Appearance.colors.colOutlineVariant
-                                }
-                            }
-                        }
-                    }
-
-                    // Password Match Indicator
-                    RowLayout {
-                        spacing: 4
-                        visible: root.confirmPasswordInput.length > 0
-
-                        MaterialSymbol {
-                            text: (root.newPasswordInput === root.confirmPasswordInput) ? "check" : "close"
-                            iconSize: 14
-                            color: (root.newPasswordInput === root.confirmPasswordInput)
-                                ? Appearance.colors.colPrimary
-                                : Appearance.colors.colError
-                        }
-
-                        StyledText {
-                            text: (root.newPasswordInput === root.confirmPasswordInput)
-                                ? Translation.tr("Passwords match")
-                                : Translation.tr("Passwords do not match")
-                            font.pixelSize: Appearance.font.pixelSize.smaller
-                            color: (root.newPasswordInput === root.confirmPasswordInput)
-                                ? Appearance.colors.colPrimary
-                                : Appearance.colors.colError
-                        }
-                    }
-                }
-
-                // Feedback Message Banner
-                Rectangle {
-                    Layout.fillWidth: true
-                    implicitHeight: passMsgLayout.implicitHeight + 14
-                    visible: SecurityService.passwordChangeSuccess || SecurityService.passwordChangeError.length > 0
-                    radius: Appearance.rounding.small
-                    color: SecurityService.passwordChangeSuccess
-                        ? ColorUtils.transparentize(Appearance.colors.colPrimary, 0.85)
-                        : ColorUtils.transparentize(Appearance.colors.colError, 0.85)
-                    border.width: 1
-                    border.color: SecurityService.passwordChangeSuccess
-                        ? Appearance.colors.colPrimary
-                        : Appearance.colors.colError
-
-                    RowLayout {
-                        id: passMsgLayout
-                        anchors.fill: parent
-                        anchors.margins: 8
-                        spacing: 8
-
-                        MaterialSymbol {
-                            text: SecurityService.passwordChangeSuccess ? "check_circle" : "error"
-                            iconSize: 20
-                            color: SecurityService.passwordChangeSuccess
-                                ? Appearance.colors.colPrimary
-                                : Appearance.colors.colError
+                            iconSize: 22
+                            color: Appearance.colors.colPrimary
                         }
 
                         StyledText {
                             Layout.fillWidth: true
-                            text: SecurityService.passwordChangeSuccess
-                                ? SecurityService.passwordChangeMessage
-                                : SecurityService.passwordChangeError
-                            font.pixelSize: Appearance.font.pixelSize.small
+                            text: Translation.tr("Fingerprint Sensor")
+                            font.pixelSize: Appearance.font.pixelSize.normal + 1
+                            font.weight: Font.DemiBold
                             color: Appearance.colors.colOnLayer0
+                        }
+
+                        RippleButton {
+                            implicitWidth: 28
+                            implicitHeight: 28
+                            buttonRadius: Appearance.rounding.full
+                            colBackground: Appearance.colors.colLayer2Base
+                            onClicked: SecurityService.refresh()
+
+                            contentItem: MaterialSymbol {
+                                anchors.centerIn: parent
+                                text: "refresh"
+                                iconSize: 16
+                                color: Appearance.colors.colOnLayer0
+                            }
+                            StyledToolTip { text: Translation.tr("Refresh sensor status") }
+                        }
+                    }
+
+                    // Hardware Sensor Mini-Card
+                    Rectangle {
+                        Layout.fillWidth: true
+                        implicitHeight: sensorInfoCol.implicitHeight + 16
+                        radius: Appearance.rounding.small
+                        color: Appearance.colors.colLayer2Base
+                        border.width: 1
+                        border.color: SecurityService.available
+                            ? ColorUtils.transparentize(Appearance.colors.colPrimary, 0.75)
+                            : Appearance.colors.colLayer0Border
+
+                        ColumnLayout {
+                            id: sensorInfoCol
+                            anchors.fill: parent
+                            anchors.margins: 10
+                            spacing: 4
+
+                            RowLayout {
+                                Layout.fillWidth: true
+
+                                MaterialSymbol {
+                                    text: SecurityService.available ? "sensors" : "sensors_off"
+                                    iconSize: 18
+                                    color: SecurityService.available ? Appearance.colors.colPrimary : Appearance.colors.colOutlineVariant
+                                }
+
+                                StyledText {
+                                    Layout.fillWidth: true
+                                    text: SecurityService.available ? SecurityService.deviceName : Translation.tr("No sensor detected")
+                                    font.pixelSize: Appearance.font.pixelSize.small
+                                    font.weight: Font.Medium
+                                    color: Appearance.colors.colOnLayer0
+                                    elide: Text.ElideRight
+                                }
+
+                                Rectangle {
+                                    implicitWidth: readyChipText.implicitWidth + 10
+                                    implicitHeight: 18
+                                    radius: Appearance.rounding.full
+                                    color: SecurityService.available
+                                        ? ColorUtils.transparentize(Appearance.colors.colPrimary, 0.8)
+                                        : ColorUtils.transparentize(Appearance.colors.colError, 0.8)
+
+                                    StyledText {
+                                        id: readyChipText
+                                        anchors.centerIn: parent
+                                        text: SecurityService.available ? Translation.tr("Ready") : Translation.tr("Offline")
+                                        font.pixelSize: Appearance.font.pixelSize.smaller
+                                        font.weight: Font.DemiBold
+                                        color: SecurityService.available ? Appearance.colors.colPrimary : Appearance.colors.colError
+                                    }
+                                }
+                            }
+
+                            StyledText {
+                                visible: SecurityService.available
+                                text: Translation.tr("%1 sensor • %2 stages • Driver: fprintd").arg(SecurityService.scanType).arg(SecurityService.numStages)
+                                font.pixelSize: Appearance.font.pixelSize.smaller
+                                color: Appearance.colors.colOutlineVariant
+                            }
+                        }
+                    }
+
+                    // Enrolled Fingerprints Deck
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 6
+
+                        StyledText {
+                            text: Translation.tr("Enrolled Fingerprints (%1)").arg(SecurityService.enrolledFingers.length)
+                            font.pixelSize: Appearance.font.pixelSize.small
+                            font.weight: Font.Medium
+                            color: Appearance.colors.colOnLayer0
+                        }
+
+                        // Empty State
+                        Rectangle {
+                            Layout.fillWidth: true
+                            implicitHeight: 44
+                            radius: Appearance.rounding.small
+                            color: Appearance.colors.colLayer2Base
+                            visible: SecurityService.enrolledFingers.length === 0
+
+                            StyledText {
+                                anchors.centerIn: parent
+                                text: Translation.tr("No fingerprints enrolled yet.")
+                                font.pixelSize: Appearance.font.pixelSize.smaller
+                                color: Appearance.colors.colOutlineVariant
+                            }
+                        }
+
+                        // List of Enrolled Fingers Cards
+                        Repeater {
+                            model: SecurityService.enrolledFingers
+                            delegate: Rectangle {
+                                required property string modelData
+                                required property int index
+
+                                Layout.fillWidth: true
+                                implicitHeight: 42
+                                radius: Appearance.rounding.small
+                                color: Appearance.colors.colLayer2Base
+                                border.width: 1
+                                border.color: Appearance.colors.colLayer0Border
+
+                                RowLayout {
+                                    anchors.fill: parent
+                                    anchors.leftMargin: 10
+                                    anchors.rightMargin: 6
+                                    spacing: 8
+
+                                    MaterialSymbol {
+                                        text: "fingerprint"
+                                        iconSize: 20
+                                        color: Appearance.colors.colPrimary
+                                    }
+
+                                    ColumnLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 0
+
+                                        StyledText {
+                                            text: SecurityService.getFingerDisplayName(modelData)
+                                            font.pixelSize: Appearance.font.pixelSize.small
+                                            font.weight: Font.Medium
+                                            color: Appearance.colors.colOnLayer0
+                                        }
+
+                                        StyledText {
+                                            text: modelData
+                                            font.pixelSize: Appearance.font.pixelSize.smaller
+                                            color: Appearance.colors.colOutlineVariant
+                                        }
+                                    }
+
+                                    // Verify Button
+                                    RippleButton {
+                                        implicitWidth: 28
+                                        implicitHeight: 28
+                                        buttonRadius: Appearance.rounding.verysmall
+                                        colBackground: Appearance.colors.colLayer1Base
+                                        onClicked: SecurityService.startVerify(modelData)
+
+                                        contentItem: MaterialSymbol {
+                                            anchors.centerIn: parent
+                                            text: "check_circle"
+                                            iconSize: 16
+                                            color: Appearance.colors.colOutlineVariant
+                                        }
+                                        StyledToolTip { text: Translation.tr("Test verify") }
+                                    }
+
+                                    // Delete Button
+                                    RippleButton {
+                                        implicitWidth: 28
+                                        implicitHeight: 28
+                                        buttonRadius: Appearance.rounding.verysmall
+                                        colBackground: Appearance.colors.colLayer1Base
+                                        onClicked: {
+                                            root.deleteConfirmFinger = modelData;
+                                            root.showDeleteDialog = true;
+                                        }
+
+                                        contentItem: MaterialSymbol {
+                                            anchors.centerIn: parent
+                                            text: "delete_outline"
+                                            iconSize: 16
+                                            color: Appearance.colors.colError
+                                        }
+                                        StyledToolTip { text: Translation.tr("Delete fingerprint") }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Live Verification Result Strip
+                    Rectangle {
+                        Layout.fillWidth: true
+                        implicitHeight: verifyResLayout.implicitHeight + 10
+                        visible: SecurityService.isVerifying
+                        radius: Appearance.rounding.verysmall
+                        color: SecurityService.verifyMatched
+                            ? ColorUtils.transparentize(Appearance.colors.colPrimary, 0.85)
+                            : (SecurityService.verifyFailed
+                                ? ColorUtils.transparentize(Appearance.colors.colError, 0.85)
+                                : Appearance.colors.colLayer2Base)
+                        border.width: 1
+                        border.color: SecurityService.verifyMatched
+                            ? Appearance.colors.colPrimary
+                            : (SecurityService.verifyFailed ? Appearance.colors.colError : Appearance.colors.colOutlineVariant)
+
+                        RowLayout {
+                            id: verifyResLayout
+                            anchors.fill: parent
+                            anchors.margins: 6
+                            spacing: 6
+
+                            MaterialSymbol {
+                                text: SecurityService.verifyMatched ? "check_circle" : (SecurityService.verifyFailed ? "error" : "sensors")
+                                iconSize: 16
+                                color: SecurityService.verifyMatched
+                                    ? Appearance.colors.colPrimary
+                                    : (SecurityService.verifyFailed ? Appearance.colors.colError : Appearance.colors.colOnLayer0)
+                            }
+
+                            StyledText {
+                                Layout.fillWidth: true
+                                text: SecurityService.verifyMessage
+                                font.pixelSize: Appearance.font.pixelSize.smaller
+                                color: Appearance.colors.colOnLayer0
+                                elide: Text.ElideRight
+                            }
+
+                            RippleButton {
+                                implicitWidth: 20
+                                implicitHeight: 20
+                                buttonRadius: Appearance.rounding.verysmall
+                                colBackground: "transparent"
+                                onClicked: SecurityService.cancelVerify()
+
+                                contentItem: MaterialSymbol {
+                                    anchors.centerIn: parent
+                                    text: "close"
+                                    iconSize: 14
+                                    color: Appearance.colors.colOutlineVariant
+                                }
+                            }
+                        }
+                    }
+
+                    Item { Layout.fillHeight: true }
+
+                    // Action Buttons Row
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 8
+                        visible: SecurityService.available
+
+                        RippleButton {
+                            Layout.fillWidth: true
+                            implicitHeight: 38
+                            buttonRadius: Appearance.rounding.small
+                            colBackground: Appearance.colors.colPrimary
+                            colBackgroundHover: Appearance.colors.colPrimaryHover
+                            onClicked: root.showEnrollDialog = true
+
+                            contentItem: RowLayout {
+                                anchors.centerIn: parent
+                                spacing: 6
+
+                                MaterialSymbol {
+                                    text: "add"
+                                    iconSize: 18
+                                    color: Appearance.colors.colOnPrimary
+                                }
+
+                                StyledText {
+                                    text: Translation.tr("Enroll Fingerprint")
+                                    font.pixelSize: Appearance.font.pixelSize.small
+                                    font.weight: Font.Medium
+                                    color: Appearance.colors.colOnPrimary
+                                }
+                            }
+                        }
+
+                        RippleButton {
+                            implicitHeight: 38
+                            implicitWidth: 42
+                            buttonRadius: Appearance.rounding.small
+                            colBackground: Appearance.colors.colLayer2Base
+                            colBackgroundHover: Appearance.colors.colLayer2Hover
+                            visible: SecurityService.enrolledFingers.length > 0
+                            onClicked: SecurityService.startVerify()
+
+                            contentItem: MaterialSymbol {
+                                anchors.centerIn: parent
+                                text: "check"
+                                iconSize: 18
+                                color: Appearance.colors.colOnLayer0
+                            }
+                            StyledToolTip { text: Translation.tr("Test Scanner Recognition") }
                         }
                     }
                 }
+            }
 
-                // Submit Button
-                RowLayout {
-                    Layout.fillWidth: true
-                    spacing: 8
+            // ---------------- BENTO TILE 2: PASSWORD MANAGEMENT ----------------
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                implicitHeight: bentoTile2Col.implicitHeight + 28
+                radius: Appearance.rounding.normal
+                color: Appearance.colors.colLayer1Base
+                border.width: 1
+                border.color: Appearance.colors.colLayer0Border
 
+                ColumnLayout {
+                    id: bentoTile2Col
+                    anchors.fill: parent
+                    anchors.margins: 16
+                    spacing: 12
+
+                    // Card Title
+                    RowLayout {
+                        Layout.fillWidth: true
+
+                        MaterialSymbol {
+                            text: "lock"
+                            iconSize: 22
+                            color: Appearance.colors.colPrimary
+                        }
+
+                        StyledText {
+                            Layout.fillWidth: true
+                            text: Translation.tr("Change Password")
+                            font.pixelSize: Appearance.font.pixelSize.normal + 1
+                            font.weight: Font.DemiBold
+                            color: Appearance.colors.colOnLayer0
+                        }
+
+                        MaterialSymbol {
+                            text: "security"
+                            iconSize: 18
+                            color: Appearance.colors.colOutlineVariant
+                        }
+                    }
+
+                    // Current Password
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 3
+
+                        StyledText {
+                            text: Translation.tr("Current Password")
+                            font.pixelSize: Appearance.font.pixelSize.smaller
+                            font.weight: Font.Medium
+                            color: Appearance.colors.colOnLayer0
+                        }
+
+                        Rectangle {
+                            Layout.fillWidth: true
+                            implicitHeight: 38
+                            radius: Appearance.rounding.small
+                            color: Appearance.colors.colLayer2Base
+                            border.width: 1
+                            border.color: curPassInput.activeFocus
+                                ? Appearance.colors.colPrimary
+                                : Appearance.colors.colLayer0Border
+
+                            RowLayout {
+                                anchors.fill: parent
+                                anchors.leftMargin: 10
+                                anchors.rightMargin: 6
+                                spacing: 4
+
+                                TextField {
+                                    id: curPassInput
+                                    Layout.fillWidth: true
+                                    Layout.fillHeight: true
+                                    verticalAlignment: Text.AlignVCenter
+                                    echoMode: root.showCurrentPassword ? TextInput.Normal : TextInput.Password
+                                    placeholderText: Translation.tr("Enter current password")
+                                    placeholderTextColor: Appearance.colors.colOutlineVariant
+                                    color: Appearance.colors.colOnLayer0
+                                    font.pixelSize: Appearance.font.pixelSize.small
+                                    selectByMouse: true
+                                    background: null
+                                    text: root.currentPasswordInput
+                                    onTextChanged: root.currentPasswordInput = text
+                                }
+
+                                RippleButton {
+                                    implicitWidth: 26
+                                    implicitHeight: 26
+                                    buttonRadius: Appearance.rounding.verysmall
+                                    colBackground: "transparent"
+                                    onClicked: root.showCurrentPassword = !root.showCurrentPassword
+
+                                    contentItem: MaterialSymbol {
+                                        anchors.centerIn: parent
+                                        text: root.showCurrentPassword ? "visibility_off" : "visibility"
+                                        iconSize: 16
+                                        color: Appearance.colors.colOutlineVariant
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // New Password
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 3
+
+                        StyledText {
+                            text: Translation.tr("New Password")
+                            font.pixelSize: Appearance.font.pixelSize.smaller
+                            font.weight: Font.Medium
+                            color: Appearance.colors.colOnLayer0
+                        }
+
+                        Rectangle {
+                            Layout.fillWidth: true
+                            implicitHeight: 38
+                            radius: Appearance.rounding.small
+                            color: Appearance.colors.colLayer2Base
+                            border.width: 1
+                            border.color: newPassInput.activeFocus
+                                ? Appearance.colors.colPrimary
+                                : Appearance.colors.colLayer0Border
+
+                            RowLayout {
+                                anchors.fill: parent
+                                anchors.leftMargin: 10
+                                anchors.rightMargin: 6
+                                spacing: 4
+
+                                TextField {
+                                    id: newPassInput
+                                    Layout.fillWidth: true
+                                    Layout.fillHeight: true
+                                    verticalAlignment: Text.AlignVCenter
+                                    echoMode: root.showNewPassword ? TextInput.Normal : TextInput.Password
+                                    placeholderText: Translation.tr("Enter new password")
+                                    placeholderTextColor: Appearance.colors.colOutlineVariant
+                                    color: Appearance.colors.colOnLayer0
+                                    font.pixelSize: Appearance.font.pixelSize.small
+                                    selectByMouse: true
+                                    background: null
+                                    text: root.newPasswordInput
+                                    onTextChanged: root.newPasswordInput = text
+                                }
+
+                                RippleButton {
+                                    implicitWidth: 26
+                                    implicitHeight: 26
+                                    buttonRadius: Appearance.rounding.verysmall
+                                    colBackground: "transparent"
+                                    onClicked: root.showNewPassword = !root.showNewPassword
+
+                                    contentItem: MaterialSymbol {
+                                        anchors.centerIn: parent
+                                        text: root.showNewPassword ? "visibility_off" : "visibility"
+                                        iconSize: 16
+                                        color: Appearance.colors.colOutlineVariant
+                                    }
+                                }
+                            }
+                        }
+
+                        // Password Strength Meter
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: 4
+                            visible: root.newPasswordInput.length > 0
+
+                            Repeater {
+                                model: 4
+                                delegate: Rectangle {
+                                    required property int index
+                                    Layout.fillWidth: true
+                                    implicitHeight: 4
+                                    radius: 2
+                                    color: (index < root.passStrength) ? root.passStrengthColor : Appearance.colors.colLayer0Border
+                                }
+                            }
+
+                            StyledText {
+                                text: root.passStrengthLabel
+                                font.pixelSize: Appearance.font.pixelSize.smaller
+                                font.weight: Font.Medium
+                                color: root.passStrengthColor
+                            }
+                        }
+                    }
+
+                    // Confirm Password
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 3
+
+                        StyledText {
+                            text: Translation.tr("Confirm New Password")
+                            font.pixelSize: Appearance.font.pixelSize.smaller
+                            font.weight: Font.Medium
+                            color: Appearance.colors.colOnLayer0
+                        }
+
+                        Rectangle {
+                            Layout.fillWidth: true
+                            implicitHeight: 38
+                            radius: Appearance.rounding.small
+                            color: Appearance.colors.colLayer2Base
+                            border.width: 1
+                            border.color: confirmPassInput.activeFocus
+                                ? Appearance.colors.colPrimary
+                                : Appearance.colors.colLayer0Border
+
+                            RowLayout {
+                                anchors.fill: parent
+                                anchors.leftMargin: 10
+                                anchors.rightMargin: 6
+                                spacing: 4
+
+                                TextField {
+                                    id: confirmPassInput
+                                    Layout.fillWidth: true
+                                    Layout.fillHeight: true
+                                    verticalAlignment: Text.AlignVCenter
+                                    echoMode: root.showConfirmPassword ? TextInput.Normal : TextInput.Password
+                                    placeholderText: Translation.tr("Re-enter new password")
+                                    placeholderTextColor: Appearance.colors.colOutlineVariant
+                                    color: Appearance.colors.colOnLayer0
+                                    font.pixelSize: Appearance.font.pixelSize.small
+                                    selectByMouse: true
+                                    background: null
+                                    text: root.confirmPasswordInput
+                                    onTextChanged: root.confirmPasswordInput = text
+                                }
+
+                                RippleButton {
+                                    implicitWidth: 26
+                                    implicitHeight: 26
+                                    buttonRadius: Appearance.rounding.verysmall
+                                    colBackground: "transparent"
+                                    onClicked: root.showConfirmPassword = !root.showConfirmPassword
+
+                                    contentItem: MaterialSymbol {
+                                        anchors.centerIn: parent
+                                        text: root.showConfirmPassword ? "visibility_off" : "visibility"
+                                        iconSize: 16
+                                        color: Appearance.colors.colOutlineVariant
+                                    }
+                                }
+                            }
+                        }
+
+                        // Match indicator
+                        RowLayout {
+                            spacing: 4
+                            visible: root.confirmPasswordInput.length > 0
+
+                            MaterialSymbol {
+                                text: (root.newPasswordInput === root.confirmPasswordInput) ? "check" : "close"
+                                iconSize: 13
+                                color: (root.newPasswordInput === root.confirmPasswordInput)
+                                    ? Appearance.colors.colPrimary
+                                    : Appearance.colors.colError
+                            }
+
+                            StyledText {
+                                text: (root.newPasswordInput === root.confirmPasswordInput)
+                                    ? Translation.tr("Passwords match")
+                                    : Translation.tr("Passwords do not match")
+                                font.pixelSize: Appearance.font.pixelSize.smaller
+                                color: (root.newPasswordInput === root.confirmPasswordInput)
+                                    ? Appearance.colors.colPrimary
+                                    : Appearance.colors.colError
+                            }
+                        }
+                    }
+
+                    // Status / Error Banner
+                    Rectangle {
+                        Layout.fillWidth: true
+                        implicitHeight: passMsgCol.implicitHeight + 10
+                        visible: SecurityService.passwordChangeSuccess || SecurityService.passwordChangeError.length > 0
+                        radius: Appearance.rounding.verysmall
+                        color: SecurityService.passwordChangeSuccess
+                            ? ColorUtils.transparentize(Appearance.colors.colPrimary, 0.85)
+                            : ColorUtils.transparentize(Appearance.colors.colError, 0.85)
+                        border.width: 1
+                        border.color: SecurityService.passwordChangeSuccess
+                            ? Appearance.colors.colPrimary
+                            : Appearance.colors.colError
+
+                        RowLayout {
+                            id: passMsgCol
+                            anchors.fill: parent
+                            anchors.margins: 6
+                            spacing: 6
+
+                            MaterialSymbol {
+                                text: SecurityService.passwordChangeSuccess ? "check_circle" : "error"
+                                iconSize: 16
+                                color: SecurityService.passwordChangeSuccess
+                                    ? Appearance.colors.colPrimary
+                                    : Appearance.colors.colError
+                            }
+
+                            StyledText {
+                                Layout.fillWidth: true
+                                text: SecurityService.passwordChangeSuccess
+                                    ? SecurityService.passwordChangeMessage
+                                    : SecurityService.passwordChangeError
+                                font.pixelSize: Appearance.font.pixelSize.smaller
+                                color: Appearance.colors.colOnLayer0
+                                wrapMode: Text.WordWrap
+                            }
+                        }
+                    }
+
+                    Item { Layout.fillHeight: true }
+
+                    // Submit Button
                     RippleButton {
+                        Layout.fillWidth: true
                         implicitHeight: 38
-                        implicitWidth: updatePassBtnLayout.implicitWidth + 24
                         buttonRadius: Appearance.rounding.small
                         colBackground: Appearance.colors.colPrimary
                         colBackgroundHover: Appearance.colors.colPrimaryHover
@@ -678,13 +902,12 @@ Item {
                                  root.newPasswordInput.length > 0 &&
                                  root.newPasswordInput === root.confirmPasswordInput &&
                                  !SecurityService.isChangingPassword
-                        opacity: enabled ? 1.0 : 0.5
+                        opacity: enabled ? 1.0 : 0.4
                         onClicked: {
                             SecurityService.changePassword(root.currentPasswordInput, root.newPasswordInput);
                         }
 
                         contentItem: RowLayout {
-                            id: updatePassBtnLayout
                             anchors.centerIn: parent
                             spacing: 6
 
@@ -696,87 +919,113 @@ Item {
 
                             StyledText {
                                 text: SecurityService.isChangingPassword
-                                    ? Translation.tr("Updating...")
+                                    ? Translation.tr("Updating Password...")
                                     : Translation.tr("Update Password")
-                                font.pixelSize: Appearance.font.pixelSize.normal
+                                font.pixelSize: Appearance.font.pixelSize.small
                                 font.weight: Font.Medium
                                 color: Appearance.colors.colOnPrimary
                             }
                         }
                     }
-
-                    Item { Layout.fillWidth: true }
                 }
             }
         }
 
-        // ================= 4. LOCKSCREEN & PAM INTEGRATION =================
-        ContentSection {
-            icon: "shield"
-            title: Translation.tr("Lock Screen & System Integration")
+        // ================= BENTO TILE 3: SYSTEM INTEGRATION BANNER =================
+        Rectangle {
+            Layout.fillWidth: true
+            implicitHeight: pamRow.implicitHeight + 20
+            radius: Appearance.rounding.normal
+            color: Appearance.colors.colLayer1Base
+            border.width: 1
+            border.color: Appearance.colors.colLayer0Border
 
-            Rectangle {
-                Layout.fillWidth: true
-                implicitHeight: pamInfoLayout.implicitHeight + 20
-                radius: Appearance.rounding.small
-                color: Appearance.colors.colLayer1
+            RowLayout {
+                id: pamRow
+                anchors.fill: parent
+                anchors.margins: 14
+                spacing: 14
 
-                RowLayout {
-                    id: pamInfoLayout
-                    anchors.fill: parent
-                    anchors.margins: 10
-                    spacing: 12
+                Rectangle {
+                    implicitWidth: 38
+                    implicitHeight: 38
+                    radius: Appearance.rounding.full
+                    color: ColorUtils.transparentize(Appearance.colors.colPrimary, 0.85)
 
                     MaterialSymbol {
+                        anchors.centerIn: parent
                         text: "verified_user"
-                        iconSize: 26
+                        iconSize: 20
                         color: Appearance.colors.colPrimary
                     }
+                }
 
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 2
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 2
 
-                        StyledText {
-                            text: Translation.tr("Biometric Lock Screen Authentication")
-                            font.pixelSize: Appearance.font.pixelSize.normal
-                            font.weight: Font.Medium
-                            color: Appearance.colors.colOnLayer0
-                        }
+                    StyledText {
+                        text: Translation.tr("Biometric Lock Screen & SDDM Integration")
+                        font.pixelSize: Appearance.font.pixelSize.small
+                        font.weight: Font.Medium
+                        color: Appearance.colors.colOnLayer0
+                    }
 
-                        StyledText {
-                            text: Translation.tr("Quickshell Lock Screen and SDDM are configured to accept fingerprint authentication automatically whenever at least one finger is enrolled.")
-                            font.pixelSize: Appearance.font.pixelSize.smaller
-                            color: Appearance.colors.colOutlineVariant
-                            wrapMode: Text.WordWrap
-                        }
+                    StyledText {
+                        text: Translation.tr("Quickshell Lock Screen and SDDM are configured to unlock automatically using enrolled fingerprints via pam_fprintd.so.")
+                        font.pixelSize: Appearance.font.pixelSize.smaller
+                        color: Appearance.colors.colOutlineVariant
+                        wrapMode: Text.WordWrap
+                    }
+                }
+
+                Rectangle {
+                    implicitWidth: pamBadgeText.implicitWidth + 12
+                    implicitHeight: 22
+                    radius: Appearance.rounding.full
+                    color: SecurityService.enrolledFingers.length > 0
+                        ? ColorUtils.transparentize(Appearance.colors.colPrimary, 0.8)
+                        : Appearance.colors.colLayer2Base
+
+                    StyledText {
+                        id: pamBadgeText
+                        anchors.centerIn: parent
+                        text: SecurityService.enrolledFingers.length > 0
+                            ? Translation.tr("Biometrics Active")
+                            : Translation.tr("Password Only")
+                        font.pixelSize: Appearance.font.pixelSize.smaller
+                        font.weight: Font.Medium
+                        color: SecurityService.enrolledFingers.length > 0
+                            ? Appearance.colors.colPrimary
+                            : Appearance.colors.colOutlineVariant
                     }
                 }
             }
         }
     }
 
-    // ================= ENROLLMENT WIZARD MODAL DIALOG =================
+    // ================= SOLID OPAQUE ENROLLMENT MODAL DIALOG =================
     Rectangle {
         id: enrollModalOverlay
         anchors.fill: parent
         visible: root.showEnrollDialog
-        color: "#99000000"
+        color: "#CC000000" // 80% solid dark overlay
         z: 99
 
         MouseArea {
             anchors.fill: parent
-            onClicked: {}
+            onClicked: {} // Block underlying clicks
         }
 
+        // 100% Solid Opaque Bento Modal Card
         Rectangle {
             anchors.centerIn: parent
-            width: Math.min(480, parent.width - 40)
+            width: Math.min(520, parent.width - 32)
             implicitHeight: modalMainCol.implicitHeight + 36
             radius: Appearance.rounding.normal
-            color: Appearance.colors.colLayer2
+            color: Appearance.m3colors.m3surfaceContainerHigh // 100% Solid Opaque
             border.width: 1
-            border.color: Appearance.colors.colOutlineVariant
+            border.color: Appearance.colors.colLayer0Border
 
             ColumnLayout {
                 id: modalMainCol
@@ -790,26 +1039,47 @@ Item {
                 RowLayout {
                     Layout.fillWidth: true
 
-                    MaterialSymbol {
-                        text: "fingerprint"
-                        iconSize: 24
-                        color: Appearance.colors.colPrimary
+                    Rectangle {
+                        implicitWidth: 32
+                        implicitHeight: 32
+                        radius: Appearance.rounding.full
+                        color: ColorUtils.transparentize(Appearance.colors.colPrimary, 0.8)
+
+                        MaterialSymbol {
+                            anchors.centerIn: parent
+                            text: "fingerprint"
+                            iconSize: 18
+                            color: Appearance.colors.colPrimary
+                        }
                     }
 
-                    StyledText {
+                    ColumnLayout {
                         Layout.fillWidth: true
-                        text: SecurityService.isEnrolling
-                            ? Translation.tr("Enrolling %1").arg(SecurityService.getFingerDisplayName(SecurityService.enrollingFinger))
-                            : Translation.tr("Select Finger to Enroll")
-                        font.pixelSize: Appearance.font.pixelSize.large
-                        font.weight: Font.DemiBold
-                        color: Appearance.colors.colOnLayer0
+                        spacing: 1
+
+                        StyledText {
+                            text: SecurityService.isEnrolling
+                                ? Translation.tr("Enrolling %1").arg(SecurityService.getFingerDisplayName(SecurityService.enrollingFinger))
+                                : Translation.tr("Select Finger to Enroll")
+                            font.pixelSize: Appearance.font.pixelSize.normal + 1
+                            font.weight: Font.DemiBold
+                            color: Appearance.colors.colOnLayer0
+                        }
+
+                        StyledText {
+                            text: SecurityService.isEnrolling
+                                ? Translation.tr("Follow the on-screen steps to register your fingerprint.")
+                                : Translation.tr("Choose a finger to associate with biometric login.")
+                            font.pixelSize: Appearance.font.pixelSize.smaller
+                            color: Appearance.colors.colOutlineVariant
+                        }
                     }
 
                     RippleButton {
-                        implicitWidth: 32
-                        implicitHeight: 32
+                        implicitWidth: 30
+                        implicitHeight: 30
                         buttonRadius: Appearance.rounding.full
+                        colBackground: Appearance.m3colors.m3surfaceContainer
                         onClicked: {
                             if (SecurityService.isEnrolling) {
                                 SecurityService.cancelEnrollment();
@@ -820,91 +1090,206 @@ Item {
                         contentItem: MaterialSymbol {
                             anchors.centerIn: parent
                             text: "close"
-                            iconSize: 18
-                            color: Appearance.colors.colOutlineVariant
+                            iconSize: 16
+                            color: Appearance.colors.colOnLayer0
                         }
                     }
                 }
 
-                // Step 1: Finger Selection (when not yet actively enrolling)
+                // ================= VIEW 1: FINGER SELECTION =================
                 ColumnLayout {
                     Layout.fillWidth: true
                     visible: !SecurityService.isEnrolling
-                    spacing: 10
+                    spacing: 12
 
-                    StyledText {
-                        text: Translation.tr("Choose which finger you would like to register:")
-                        font.pixelSize: Appearance.font.pixelSize.small
-                        color: Appearance.colors.colOutlineVariant
-                    }
-
-                    // Finger Selector Grid
-                    GridLayout {
+                    // Two Column Hand Layout (Left Hand / Right Hand)
+                    RowLayout {
                         Layout.fillWidth: true
-                        columns: 2
-                        rowSpacing: 6
-                        columnSpacing: 6
+                        spacing: 12
 
-                        Repeater {
-                            model: SecurityService.supportedFingers
-                            delegate: Rectangle {
-                                required property var modelData
-                                required property int index
-                                readonly property bool isEnrolled: SecurityService.isFingerEnrolled(modelData.id)
-                                readonly property bool isSelected: root.selectedFingerToEnroll === modelData.id
+                        // Left Hand Column
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 6
 
-                                Layout.fillWidth: true
-                                implicitHeight: 36
-                                radius: Appearance.rounding.verysmall
-                                color: isSelected
-                                    ? Appearance.colors.colPrimary
-                                    : (isEnrolled ? Appearance.colors.colLayer1 : Appearance.colors.colLayer0)
-                                border.width: isSelected ? 0 : 1
-                                border.color: ColorUtils.transparentize(Appearance.colors.colOutlineVariant, 0.7)
+                            RowLayout {
+                                spacing: 4
+                                MaterialSymbol {
+                                    text: "back_hand"
+                                    iconSize: 14
+                                    color: Appearance.colors.colOutlineVariant
+                                }
+                                StyledText {
+                                    text: Translation.tr("Left Hand")
+                                    font.pixelSize: Appearance.font.pixelSize.smaller
+                                    font.weight: Font.DemiBold
+                                    color: Appearance.colors.colOutlineVariant
+                                }
+                            }
 
-                                MouseArea {
-                                    anchors.fill: parent
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: {
-                                        root.selectedFingerToEnroll = modelData.id;
+                            Repeater {
+                                model: SecurityService.supportedFingers.filter(f => f.hand === "left")
+                                delegate: Rectangle {
+                                    required property var modelData
+                                    required property int index
+                                    readonly property bool isEnrolled: SecurityService.isFingerEnrolled(modelData.id)
+                                    readonly property bool isSelected: root.selectedFingerToEnroll === modelData.id
+
+                                    Layout.fillWidth: true
+                                    implicitHeight: 38
+                                    radius: Appearance.rounding.small
+                                    color: isSelected
+                                        ? Appearance.colors.colPrimary
+                                        : (leftFingerMouse.containsMouse ? Appearance.m3colors.m3surfaceContainerHighest : Appearance.m3colors.m3surfaceContainer)
+                                    border.width: 1
+                                    border.color: isSelected
+                                        ? Appearance.colors.colPrimary
+                                        : (leftFingerMouse.containsMouse ? ColorUtils.transparentize(Appearance.colors.colPrimary, 0.5) : Appearance.colors.colLayer0Border)
+
+                                    MouseArea {
+                                        id: leftFingerMouse
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            root.selectedFingerToEnroll = modelData.id;
+                                        }
+                                    }
+
+                                    RowLayout {
+                                        anchors.fill: parent
+                                        anchors.leftMargin: 10
+                                        anchors.rightMargin: 10
+                                        spacing: 8
+
+                                        MaterialSymbol {
+                                            text: isEnrolled ? "check_circle" : "fingerprint"
+                                            iconSize: 16
+                                            color: isSelected ? Appearance.colors.colOnPrimary : (isEnrolled ? Appearance.colors.colPrimary : Appearance.colors.colOutlineVariant)
+                                        }
+
+                                        StyledText {
+                                            Layout.fillWidth: true
+                                            text: modelData.name
+                                            font.pixelSize: Appearance.font.pixelSize.smaller
+                                            font.weight: isSelected ? Font.Medium : Font.Normal
+                                            color: isSelected ? Appearance.colors.colOnPrimary : Appearance.colors.colOnLayer0
+                                            elide: Text.ElideRight
+                                        }
+
+                                        Rectangle {
+                                            visible: isEnrolled
+                                            implicitWidth: 18
+                                            implicitHeight: 18
+                                            radius: Appearance.rounding.full
+                                            color: isSelected ? ColorUtils.transparentize(Appearance.colors.colOnPrimary, 0.75) : ColorUtils.transparentize(Appearance.colors.colPrimary, 0.8)
+
+                                            MaterialSymbol {
+                                                anchors.centerIn: parent
+                                                text: "check"
+                                                iconSize: 12
+                                                color: isSelected ? Appearance.colors.colOnPrimary : Appearance.colors.colPrimary
+                                            }
+                                        }
                                     }
                                 }
+                            }
+                        }
 
-                                RowLayout {
-                                    anchors.fill: parent
-                                    anchors.leftMargin: 8
-                                    anchors.rightMargin: 8
-                                    spacing: 6
+                        // Right Hand Column
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 6
 
-                                    MaterialSymbol {
-                                        text: isEnrolled ? "check_circle" : "fingerprint"
-                                        iconSize: 16
-                                        color: isSelected ? Appearance.colors.colOnPrimary : (isEnrolled ? Appearance.colors.colPrimary : Appearance.colors.colOutlineVariant)
+                            RowLayout {
+                                spacing: 4
+                                MaterialSymbol {
+                                    text: "front_hand"
+                                    iconSize: 14
+                                    color: Appearance.colors.colOutlineVariant
+                                }
+                                StyledText {
+                                    text: Translation.tr("Right Hand")
+                                    font.pixelSize: Appearance.font.pixelSize.smaller
+                                    font.weight: Font.DemiBold
+                                    color: Appearance.colors.colOutlineVariant
+                                }
+                            }
+
+                            Repeater {
+                                model: SecurityService.supportedFingers.filter(f => f.hand === "right")
+                                delegate: Rectangle {
+                                    required property var modelData
+                                    required property int index
+                                    readonly property bool isEnrolled: SecurityService.isFingerEnrolled(modelData.id)
+                                    readonly property bool isSelected: root.selectedFingerToEnroll === modelData.id
+
+                                    Layout.fillWidth: true
+                                    implicitHeight: 38
+                                    radius: Appearance.rounding.small
+                                    color: isSelected
+                                        ? Appearance.colors.colPrimary
+                                        : (rightFingerMouse.containsMouse ? Appearance.m3colors.m3surfaceContainerHighest : Appearance.m3colors.m3surfaceContainer)
+                                    border.width: 1
+                                    border.color: isSelected
+                                        ? Appearance.colors.colPrimary
+                                        : (rightFingerMouse.containsMouse ? ColorUtils.transparentize(Appearance.colors.colPrimary, 0.5) : Appearance.colors.colLayer0Border)
+
+                                    MouseArea {
+                                        id: rightFingerMouse
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            root.selectedFingerToEnroll = modelData.id;
+                                        }
                                     }
 
-                                    StyledText {
-                                        Layout.fillWidth: true
-                                        text: modelData.name
-                                        font.pixelSize: Appearance.font.pixelSize.small
-                                        font.weight: isSelected ? Font.Medium : Font.Normal
-                                        color: isSelected ? Appearance.colors.colOnPrimary : Appearance.colors.colOnLayer0
-                                    }
+                                    RowLayout {
+                                        anchors.fill: parent
+                                        anchors.leftMargin: 10
+                                        anchors.rightMargin: 10
+                                        spacing: 8
 
-                                    StyledText {
-                                        visible: isEnrolled
-                                        text: Translation.tr("Enrolled")
-                                        font.pixelSize: Appearance.font.pixelSize.smaller
-                                        color: isSelected ? Appearance.colors.colOnPrimary : Appearance.colors.colOutlineVariant
+                                        MaterialSymbol {
+                                            text: isEnrolled ? "check_circle" : "fingerprint"
+                                            iconSize: 16
+                                            color: isSelected ? Appearance.colors.colOnPrimary : (isEnrolled ? Appearance.colors.colPrimary : Appearance.colors.colOutlineVariant)
+                                        }
+
+                                        StyledText {
+                                            Layout.fillWidth: true
+                                            text: modelData.name
+                                            font.pixelSize: Appearance.font.pixelSize.smaller
+                                            font.weight: isSelected ? Font.Medium : Font.Normal
+                                            color: isSelected ? Appearance.colors.colOnPrimary : Appearance.colors.colOnLayer0
+                                            elide: Text.ElideRight
+                                        }
+
+                                        Rectangle {
+                                            visible: isEnrolled
+                                            implicitWidth: 18
+                                            implicitHeight: 18
+                                            radius: Appearance.rounding.full
+                                            color: isSelected ? ColorUtils.transparentize(Appearance.colors.colOnPrimary, 0.75) : ColorUtils.transparentize(Appearance.colors.colPrimary, 0.8)
+
+                                            MaterialSymbol {
+                                                anchors.centerIn: parent
+                                                text: "check"
+                                                iconSize: 12
+                                                color: isSelected ? Appearance.colors.colOnPrimary : Appearance.colors.colPrimary
+                                            }
+                                        }
                                     }
                                 }
                             }
                         }
                     }
 
-                    // Start Enrollment Action Button
+                    // Start Enrollment Action
                     RowLayout {
                         Layout.fillWidth: true
-                        Layout.topMargin: 8
+                        Layout.topMargin: 4
                         spacing: 8
 
                         Item { Layout.fillWidth: true }
@@ -932,7 +1317,7 @@ Item {
 
                                 StyledText {
                                     text: Translation.tr("Start Enrollment")
-                                    font.pixelSize: Appearance.font.pixelSize.normal
+                                    font.pixelSize: Appearance.font.pixelSize.small
                                     font.weight: Font.Medium
                                     color: Appearance.colors.colOnPrimary
                                 }
@@ -941,42 +1326,42 @@ Item {
                     }
                 }
 
-                // Step 2: Interactive Live Sensor Progress (while enrolling)
+                // ================= VIEW 2: INTERACTIVE LIVE ENROLLMENT =================
                 ColumnLayout {
                     Layout.fillWidth: true
                     visible: SecurityService.isEnrolling
                     spacing: 16
 
-                    // Central Fingerprint & Circular Progress
+                    // Central Sensor Animation & Circular Progress
                     Item {
                         Layout.alignment: Qt.AlignHCenter
-                        implicitWidth: 120
-                        implicitHeight: 120
+                        implicitWidth: 130
+                        implicitHeight: 130
 
                         CircularProgress {
                             anchors.fill: parent
-                            lineWidth: 5
-                            implicitSize: 120
+                            lineWidth: 6
+                            implicitSize: 130
                             value: SecurityService.enrollTotalStages > 0
                                 ? (SecurityService.enrollStage / SecurityService.enrollTotalStages)
                                 : 0
                             colPrimary: Appearance.colors.colPrimary
-                            colSecondary: Appearance.colors.colLayer1
+                            colSecondary: Appearance.m3colors.m3surfaceContainer
                         }
 
                         Rectangle {
                             anchors.centerIn: parent
-                            implicitWidth: 96
-                            implicitHeight: 96
+                            implicitWidth: 104
+                            implicitHeight: 104
                             radius: Appearance.rounding.full
                             color: SecurityService.enrollCompleted
                                 ? ColorUtils.transparentize(Appearance.colors.colPrimary, 0.8)
-                                : Appearance.colors.colLayer1
+                                : Appearance.m3colors.m3surfaceContainer
 
                             MaterialSymbol {
                                 anchors.centerIn: parent
                                 text: SecurityService.enrollCompleted ? "check_circle" : "fingerprint"
-                                iconSize: 48
+                                iconSize: 52
                                 color: SecurityService.enrollCompleted
                                     ? Appearance.colors.colPrimary
                                     : (SecurityService.enrollStage > 0 ? Appearance.colors.colPrimary : Appearance.colors.colOutlineVariant)
@@ -991,16 +1376,16 @@ Item {
                     // Stage Counter Badge
                     Rectangle {
                         Layout.alignment: Qt.AlignHCenter
-                        implicitWidth: stageBadgeText.implicitWidth + 18
-                        implicitHeight: 26
+                        implicitWidth: stageBadgeText.implicitWidth + 20
+                        implicitHeight: 28
                         radius: Appearance.rounding.full
-                        color: Appearance.colors.colLayer1
+                        color: Appearance.m3colors.m3surfaceContainer
 
                         StyledText {
                             id: stageBadgeText
                             anchors.centerIn: parent
                             text: SecurityService.enrollCompleted
-                                ? Translation.tr("Complete!")
+                                ? Translation.tr("Enrollment Complete!")
                                 : Translation.tr("Stage %1 of %2").arg(SecurityService.enrollStage).arg(SecurityService.enrollTotalStages)
                             font.pixelSize: Appearance.font.pixelSize.small
                             font.weight: Font.DemiBold
@@ -1008,11 +1393,11 @@ Item {
                         }
                     }
 
-                    // Live Instructional Text
+                    // Prompt message
                     StyledText {
                         Layout.fillWidth: true
-                        Layout.leftMargin: 20
-                        Layout.rightMargin: 20
+                        Layout.leftMargin: 16
+                        Layout.rightMargin: 16
                         horizontalAlignment: Text.AlignHCenter
                         text: SecurityService.enrollMessage
                         font.pixelSize: Appearance.font.pixelSize.normal
@@ -1035,16 +1420,16 @@ Item {
                     // Modal Action Buttons
                     RowLayout {
                         Layout.fillWidth: true
-                        Layout.topMargin: 8
+                        Layout.topMargin: 4
 
                         Item { Layout.fillWidth: true }
 
                         RippleButton {
-                            implicitHeight: 36
-                            implicitWidth: 90
+                            implicitHeight: 38
+                            implicitWidth: 96
                             buttonRadius: Appearance.rounding.small
-                            colBackground: SecurityService.enrollCompleted ? Appearance.colors.colPrimary : Appearance.colors.colLayer1
-                            colBackgroundHover: SecurityService.enrollCompleted ? Appearance.colors.colPrimaryHover : Appearance.colors.colLayer1Hover
+                            colBackground: SecurityService.enrollCompleted ? Appearance.colors.colPrimary : Appearance.m3colors.m3surfaceContainer
+                            colBackgroundHover: SecurityService.enrollCompleted ? Appearance.colors.colPrimaryHover : Appearance.colors.colLayer2Hover
                             onClicked: {
                                 if (SecurityService.isEnrolling) {
                                     SecurityService.cancelEnrollment();
@@ -1066,12 +1451,12 @@ Item {
         }
     }
 
-    // ================= DELETE CONFIRMATION DIALOG =================
+    // ================= SOLID OPAQUE DELETE CONFIRMATION DIALOG =================
     Rectangle {
         id: deleteModalOverlay
         anchors.fill: parent
         visible: root.showDeleteDialog
-        color: "#99000000"
+        color: "#CC000000"
         z: 99
 
         MouseArea {
@@ -1081,12 +1466,12 @@ Item {
 
         Rectangle {
             anchors.centerIn: parent
-            width: Math.min(380, parent.width - 40)
+            width: Math.min(400, parent.width - 32)
             implicitHeight: deleteModalCol.implicitHeight + 36
             radius: Appearance.rounding.normal
-            color: Appearance.colors.colLayer2
+            color: Appearance.m3colors.m3surfaceContainerHigh // 100% Solid Opaque
             border.width: 1
-            border.color: Appearance.colors.colOutlineVariant
+            border.color: Appearance.colors.colLayer0Border
 
             ColumnLayout {
                 id: deleteModalCol
@@ -1130,8 +1515,7 @@ Item {
                         implicitHeight: 34
                         implicitWidth: 80
                         buttonRadius: Appearance.rounding.small
-                        colBackground: Appearance.colors.colLayer1
-                        colBackgroundHover: Appearance.colors.colLayer1Hover
+                        colBackground: Appearance.m3colors.m3surfaceContainer
                         onClicked: root.showDeleteDialog = false
 
                         contentItem: StyledText {
