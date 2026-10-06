@@ -151,6 +151,10 @@ Singleton {
             args.push("--sys-device", root.systemAudioDevice);
         }
 
+        if (root.autoZoomEnabled) {
+            args.push("--auto-polish", "1");
+        }
+
         // Execute recorder in background
         Quickshell.execDetached(args);
 
@@ -208,7 +212,10 @@ Singleton {
     }
 
     function toggleZoom() {
-        root.setZoom(!root.zoomActive);
+        root.zoomActive = !root.zoomActive;
+        // Signal studio_telemetry logger of zoom marker
+        const cmd = `python3 -c "import socket; s=socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM); s.sendto(b'ZOOM_TOGGLE ${root.zoomFactor}', '/tmp/studio_telemetry.sock')" 2>/dev/null || true`;
+        Quickshell.execDetached(["bash", "-c", cmd]);
     }
 
     // ================= Camera Bubble Controls =================

@@ -41,6 +41,7 @@ if [[ "$1" == "--status" ]]; then
 fi
 
 # ----------------- Parse Arguments -----------------
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)
 MODE="fullscreen"
 OUTPUT_MONITOR=""
 GEOMETRY=""
@@ -50,6 +51,7 @@ USE_SYS=1
 MIC_SRC=""
 SYS_SRC=""
 CUSTOM_FILE=""
+AUTO_POLISH=0
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -71,6 +73,8 @@ while [[ $# -gt 0 ]]; do
             SYS_SRC="$2"; shift 2 ;;
         --file)
             CUSTOM_FILE="$2"; shift 2 ;;
+        --auto-polish)
+            AUTO_POLISH="$2"; shift 2 ;;
         *)
             shift ;;
     esac
@@ -116,6 +120,7 @@ SYS_MODULE=""
 AUDIO_ARG=""
 
 cleanup_audio() {
+    [[ -n "$TELEM_PID" ]] && kill -2 "$TELEM_PID" 2>/dev/null
     [[ -n "$MIC_MODULE" ]] && pactl unload-module "$MIC_MODULE" 2>/dev/null
     [[ -n "$SYS_MODULE" ]] && pactl unload-module "$SYS_MODULE" 2>/dev/null
     [[ -n "$SINK_MODULE" ]] && pactl unload-module "$SINK_MODULE" 2>/dev/null
@@ -178,16 +183,45 @@ wf-recorder "${WF_ARGS[@]}" &
 REC_PID=$!
 echo "$REC_PID" > "$PID_FILE"
 
+# Launch cursor & interaction telemetry logger
+TELEMETRY_PATH="${TARGET_PATH%.mp4}.telemetry.json"
+python3 "$SCRIPT_DIR/studio_telemetry.py" \
+    --output "$TELEMETRY_PATH" \
+    --monitor "$OUTPUT_MONITOR" \
+    --watch-pid "$REC_PID" &
+TELEM_PID=$!
+
 # Wait for recorder to terminate
 wait "$REC_PID" 2>/dev/null
 
-# Send completion notification
+if [[ -n "$TELEM_PID" ]]; then
+    kill -2 "$TELEM_PID" 2>/dev/null
+    wait "$TELEM_PID" 2>/dev/null
+fi
+
+# Send completion notification with Studio Polish action
 if [[ -f "$TARGET_PATH" && -s "$TARGET_PATH" ]]; then
     FILE_SIZE=$(du -h "$TARGET_PATH" | cut -f1)
-    notify-send "Studio Recording Saved" \
-        "${FILENAME} (${FILE_SIZE})\nSaved in ${RECORDING_DIR}" \
-        -i "video-x-generic" \
-        -a "Recording Studio" \
-        --action="open=Open Video" \
-        --action="folder=Open Folder" 2>/dev/null || true
+
+    if [[ "$AUTO_POLISH" -eq 1 ]]; then
+        notify-send "Recording Complete" "Applying Studio Polish (Capptivo style)..." \
+            -i "video-x-generic" -a "Recording Studio" 2>/dev/null || true
+        python3 "$SCRIPT_DIR/studio_render.py" -i "$TARGET_PATH" &
+    else
+        ACTION=$(notify-send "Studio Recording Saved" \
+            "${FILENAME} (${FILE_SIZE})\nSaved in ${RECORDING_DIR}" \
+            -i "video-x-generic" \
+            -a "Recording Studio" \
+            --action="polish=Apply Studio Polish (Capptivo style)" \
+            --action="open=Open Video" \
+            --action="folder=Open Folder" 2>/dev/null || true)
+
+        if [[ "$ACTION" == "polish" ]]; then
+            python3 "$SCRIPT_DIR/studio_render.py" -i "$TARGET_PATH" &
+        elif [[ "$ACTION" == "open" ]]; then
+            xdg-open "$TARGET_PATH" &
+        elif [[ "$ACTION" == "folder" ]]; then
+            xdg-open "$RECORDING_DIR" &
+        fi
+    fi
 fi
