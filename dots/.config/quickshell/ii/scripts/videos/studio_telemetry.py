@@ -59,11 +59,23 @@ def main():
     parser = argparse.ArgumentParser(description="Studio Recorder Telemetry Logger")
     parser.add_argument("--output", "-o", required=True, help="Output JSON path")
     parser.add_argument("--monitor", "-m", default=None, help="Target monitor name")
+    parser.add_argument("--geometry", "-g", default=None, help="Capture geometry X,Y WxH for region recording")
     parser.add_argument("--watch-pid", "-p", type=int, default=None, help="Watch recorder PID and exit when it stops")
     parser.add_argument("--sock", default="/tmp/studio_telemetry.sock", help="Unix socket path for zoom markers")
     args = parser.parse_args()
 
-    mx, my, mw, mh = get_monitor_geometry(args.monitor)
+    if args.geometry:
+        try:
+            parts = args.geometry.strip().split()
+            gx, gy = [float(v) for v in parts[0].split(",")]
+            gw, gh = [float(v) for v in parts[1].split("x")]
+            mx, my, mw, mh = gx, gy, gw, gh
+        except Exception as e:
+            sys.stderr.write(f"Failed to parse geometry '{args.geometry}': {e}\n")
+            mx, my, mw, mh = get_monitor_geometry(args.monitor)
+    else:
+        mx, my, mw, mh = get_monitor_geometry(args.monitor)
+
     t0 = time.time()
 
     samples = []

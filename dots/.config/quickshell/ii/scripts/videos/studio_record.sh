@@ -153,7 +153,13 @@ if [[ -n "$AUDIO_ARG" ]]; then
     WF_ARGS+=("$AUDIO_ARG")
 fi
 
-if [[ "$MODE" == "region" && -n "$GEOMETRY" ]]; then
+if [[ "$MODE" == "region" ]]; then
+    if [[ -z "$GEOMETRY" ]]; then
+        if ! GEOMETRY=$(slurp 2>/dev/null); then
+            notify-send "Studio Recorder" "Area selection was cancelled" -u low -a 'StudioRecorder' &
+            exit 1
+        fi
+    fi
     WF_ARGS+=("-g" "$GEOMETRY")
 else
     if [[ -n "$OUTPUT_MONITOR" ]]; then
@@ -185,10 +191,14 @@ echo "$REC_PID" > "$PID_FILE"
 
 # Launch cursor & interaction telemetry logger
 TELEMETRY_PATH="${TARGET_PATH%.mp4}.telemetry.json"
-python3 "$SCRIPT_DIR/studio_telemetry.py" \
-    --output "$TELEMETRY_PATH" \
-    --monitor "$OUTPUT_MONITOR" \
-    --watch-pid "$REC_PID" &
+TELEM_ARGS=("--output" "$TELEMETRY_PATH" "--watch-pid" "$REC_PID")
+if [[ -n "$GEOMETRY" ]]; then
+    TELEM_ARGS+=("--geometry" "$GEOMETRY")
+elif [[ -n "$OUTPUT_MONITOR" ]]; then
+    TELEM_ARGS+=("--monitor" "$OUTPUT_MONITOR")
+fi
+
+python3 "$SCRIPT_DIR/studio_telemetry.py" "${TELEM_ARGS[@]}" &
 TELEM_PID=$!
 
 # Wait for recorder to terminate
