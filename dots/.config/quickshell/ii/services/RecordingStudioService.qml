@@ -117,8 +117,48 @@ Singleton {
         root.setupModalOpen = false;
     }
 
+    // ================= Area Selection via slurp =================
+    property bool isSelectingArea: false
+
+    Process {
+        id: slurpProcess
+        command: ["slurp", "-d", "-b", "#00000066", "-c", "#cba6f7", "-s", "#cba6f722"]
+
+        stdout: StdioCollector {
+            id: slurpCollector
+            onStreamFinished: {
+                const raw = slurpCollector.text.trim();
+                if (raw.length > 0 && raw.indexOf(" ") !== -1) {
+                    root.regionGeometry = raw;
+                    root.captureMode = "region";
+                }
+            }
+        }
+
+        onExited: (exitCode, exitStatus) => {
+            root.isSelectingArea = false;
+            if (exitCode !== 0 && root.regionGeometry.length === 0) {
+                root.captureMode = "fullscreen";
+            }
+            root.setupModalOpen = true;
+        }
+    }
+
+    function selectArea() {
+        if (slurpProcess.running) {
+            slurpProcess.running = false;
+        }
+        root.isSelectingArea = true;
+        root.setupModalOpen = false;
+        slurpProcess.running = true;
+    }
+
     // Start with countdown
     function startRecordingWithCountdown() {
+        if (root.captureMode === "region" && root.regionGeometry.length === 0) {
+            root.selectArea();
+            return;
+        }
         root.setupModalOpen = false;
         root.countdownValue = 3;
         root.countdownActive = true;
@@ -269,6 +309,9 @@ Singleton {
         }
         function toggleCameraMirror() {
             root.toggleCameraMirror();
+        }
+        function selectArea() {
+            root.selectArea();
         }
     }
 }

@@ -165,7 +165,12 @@ PanelWindow {
                         buttonRadius: Appearance.rounding.full
                         readonly property bool isSelected: RecordingStudioService.captureMode === "region"
                         colBackground: isSelected ? Appearance.m3colors.m3primary : Appearance.m3colors.m3surfaceContainerHigh
-                        onClicked: RecordingStudioService.captureMode = "region"
+                        onClicked: {
+                            RecordingStudioService.captureMode = "region";
+                            if (RecordingStudioService.regionGeometry.length === 0) {
+                                RecordingStudioService.selectArea();
+                            }
+                        }
 
                         RowLayout {
                             id: regBtnRow
@@ -177,11 +182,35 @@ PanelWindow {
                                 color: parent.parent.isSelected ? Appearance.m3colors.m3onPrimary : Appearance.m3colors.m3onSurface
                             }
                             StyledText {
-                                text: Translation.tr("Selected Area")
+                                text: {
+                                    if (RecordingStudioService.captureMode === "region" && RecordingStudioService.regionGeometry.length > 0) {
+                                        let parts = RecordingStudioService.regionGeometry.split(" ");
+                                        let dim = parts.length > 1 ? parts[1] : RecordingStudioService.regionGeometry;
+                                        return Translation.tr("Area: ") + dim;
+                                    }
+                                    return Translation.tr("Selected Area");
+                                }
                                 font.pixelSize: Appearance.font.pixelSize.small
                                 font.bold: parent.parent.isSelected
                                 color: parent.parent.isSelected ? Appearance.m3colors.m3onPrimary : Appearance.m3colors.m3onSurface
                             }
+                        }
+                    }
+
+                    // Reselect button when region is active
+                    RippleButton {
+                        visible: RecordingStudioService.captureMode === "region" && RecordingStudioService.regionGeometry.length > 0
+                        implicitWidth: 32
+                        implicitHeight: 32
+                        buttonRadius: 16
+                        colBackground: Appearance.m3colors.m3surfaceContainerHigh
+                        onClicked: RecordingStudioService.selectArea()
+
+                        MaterialSymbol {
+                            anchors.centerIn: parent
+                            text: "crop_free"
+                            iconSize: 16
+                            color: Appearance.m3colors.m3onSurface
                         }
                     }
                 }
