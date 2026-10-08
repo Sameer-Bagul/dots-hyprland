@@ -94,7 +94,7 @@ Item { // Bar content region
                 Layout.rightMargin: Appearance.rounding.screenRounding
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                visible: root.useShortenedForm === 0
+                visible: (Config.options?.bar?.showActiveWindow ?? false) && root.useShortenedForm === 0
             }
         }
     }
