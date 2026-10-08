@@ -42,16 +42,16 @@ fi
 
 # ----------------- Parse Arguments -----------------
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)
-MODE="fullscreen"
-OUTPUT_MONITOR=""
-GEOMETRY=""
-FPS=60
-USE_MIC=1
-USE_SYS=1
-MIC_SRC=""
-SYS_SRC=""
-CUSTOM_FILE=""
-AUTO_POLISH=0
+RENDER_ASPECT="16:9"
+RENDER_PRESET="gradient"
+RENDER_WINDOW_FRAME=0
+RENDER_WINDOW_TITLE=""
+RENDER_NO_CLICK_RIPPLE=0
+RENDER_NO_CLICK_SOUND=0
+RENDER_NO_ZOOM=0
+RENDER_CAPTIONS=0
+RENDER_CAPTIONS_MODEL="tiny.en"
+RENDER_GIF=0
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -75,6 +75,26 @@ while [[ $# -gt 0 ]]; do
             CUSTOM_FILE="$2"; shift 2 ;;
         --auto-polish)
             AUTO_POLISH="$2"; shift 2 ;;
+        --render-aspect)
+            RENDER_ASPECT="$2"; shift 2 ;;
+        --render-preset)
+            RENDER_PRESET="$2"; shift 2 ;;
+        --render-window-frame)
+            RENDER_WINDOW_FRAME="$2"; shift 2 ;;
+        --render-window-title)
+            RENDER_WINDOW_TITLE="$2"; shift 2 ;;
+        --render-no-click-ripple)
+            RENDER_NO_CLICK_RIPPLE="$2"; shift 2 ;;
+        --render-no-click-sound)
+            RENDER_NO_CLICK_SOUND="$2"; shift 2 ;;
+        --render-no-zoom)
+            RENDER_NO_ZOOM="$2"; shift 2 ;;
+        --render-captions)
+            RENDER_CAPTIONS="$2"; shift 2 ;;
+        --render-captions-model)
+            RENDER_CAPTIONS_MODEL="$2"; shift 2 ;;
+        --render-gif)
+            RENDER_GIF="$2"; shift 2 ;;
         *)
             shift ;;
     esac
@@ -213,21 +233,33 @@ fi
 if [[ -f "$TARGET_PATH" && -s "$TARGET_PATH" ]]; then
     FILE_SIZE=$(du -h "$TARGET_PATH" | cut -f1)
 
+    # Build studio_render.py arguments from capture flags
+    RENDER_ARGS=("-i" "$TARGET_PATH" "--aspect" "$RENDER_ASPECT" "--preset" "$RENDER_PRESET")
+    [[ "$RENDER_WINDOW_FRAME" -eq 1 ]] && RENDER_ARGS+=("--window-frame")
+    [[ -n "$RENDER_WINDOW_TITLE" ]] && RENDER_ARGS+=("--window-title" "$RENDER_WINDOW_TITLE")
+    [[ "$RENDER_NO_CLICK_RIPPLE" -eq 1 ]] && RENDER_ARGS+=("--no-click-ripple")
+    [[ "$RENDER_NO_CLICK_SOUND" -eq 1 ]] && RENDER_ARGS+=("--no-click-sound")
+    [[ "$RENDER_NO_ZOOM" -eq 1 ]] && RENDER_ARGS+=("--no-zoom")
+    [[ "$RENDER_CAPTIONS" -eq 1 ]] && RENDER_ARGS+=("--captions" "--captions-model" "$RENDER_CAPTIONS_MODEL")
+    [[ "$RENDER_GIF" -eq 1 ]] && RENDER_ARGS+=("--gif")
+
     if [[ "$AUTO_POLISH" -eq 1 ]]; then
-        notify-send "Recording Complete" "Applying Studio Polish (Capptivo style)..." \
+        notify-send "Recording Complete" "Applying Studio Polish..." \
             -i "video-x-generic" -a "Recording Studio" 2>/dev/null || true
-        python3 "$SCRIPT_DIR/studio_render.py" -i "$TARGET_PATH" &
+        python3 "$SCRIPT_DIR/studio_render.py" "${RENDER_ARGS[@]}" &
     else
         ACTION=$(notify-send "Studio Recording Saved" \
             "${FILENAME} (${FILE_SIZE})\nSaved in ${RECORDING_DIR}" \
             -i "video-x-generic" \
             -a "Recording Studio" \
-            --action="polish=Apply Studio Polish (Capptivo style)" \
-            --action="open=Open Video" \
-            --action="folder=Open Folder" 2>/dev/null || true)
+            --action="polish=✨ Apply Studio Polish" \
+            --action="open=▶ Open Video" \
+            --action="folder=📁 Open Folder" 2>/dev/null || true)
 
         if [[ "$ACTION" == "polish" ]]; then
-            python3 "$SCRIPT_DIR/studio_render.py" -i "$TARGET_PATH" &
+            notify-send "Studio Polish" "Rendering polished video..." \
+                -i "video-x-generic" -a "Recording Studio" 2>/dev/null || true
+            python3 "$SCRIPT_DIR/studio_render.py" "${RENDER_ARGS[@]}" &
         elif [[ "$ACTION" == "open" ]]; then
             xdg-open "$TARGET_PATH" &
         elif [[ "$ACTION" == "folder" ]]; then

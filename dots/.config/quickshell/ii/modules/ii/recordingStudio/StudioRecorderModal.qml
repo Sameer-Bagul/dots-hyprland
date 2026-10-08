@@ -48,7 +48,7 @@ PanelWindow {
     StyledRectangle {
         id: modalContent
         anchors.centerIn: parent
-        width: 600
+        width: 640
         implicitHeight: mainCol.implicitHeight + 40
         radius: Appearance.rounding.large
         color: Appearance.m3colors.m3surface
@@ -442,6 +442,266 @@ PanelWindow {
                             StyledSwitch {
                                 checked: RecordingStudioService.autoZoomEnabled
                                 onCheckedChanged: RecordingStudioService.autoZoomEnabled = checked
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ---------------- CARD 3: Studio Polish & Presets (Capptivo Engine) ----------------
+            StyledRectangle {
+                Layout.fillWidth: true
+                implicitHeight: polishCardCol.implicitHeight + 24
+                radius: Appearance.rounding.normal
+                color: Appearance.m3colors.m3surfaceContainer
+                border.width: 1
+                border.color: Appearance.m3colors.m3outlineVariant
+
+                ColumnLayout {
+                    id: polishCardCol
+                    anchors.fill: parent
+                    anchors.margins: 14
+                    spacing: 10
+
+                    // Header row: Title + Master Auto Polish Switch
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 8
+                        MaterialSymbol { text: "auto_fix_high"; iconSize: 20; color: Appearance.m3colors.m3primary }
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 1
+                            StyledText {
+                                text: Translation.tr("Studio Polish & Engine")
+                                font.bold: true
+                                font.pixelSize: Appearance.font.pixelSize.normal
+                                color: Appearance.m3colors.m3onSurface
+                            }
+                            StyledText {
+                                text: Translation.tr("Auto camera panning, rounded shadow stage, and tactile clicks")
+                                font.pixelSize: 10
+                                color: Appearance.m3colors.m3onSurfaceVariant
+                            }
+                        }
+                        StyledSwitch {
+                            checked: RecordingStudioService.autoPolish
+                            onCheckedChanged: RecordingStudioService.autoPolish = checked
+                        }
+                    }
+
+                    Rectangle { Layout.fillWidth: true; height: 1; color: Appearance.m3colors.m3outlineVariant }
+
+                    // Options area (dimmed if autoPolish is disabled)
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 10
+                        opacity: RecordingStudioService.autoPolish ? 1.0 : 0.45
+                        enabled: RecordingStudioService.autoPolish
+
+                        // Row 1: Aspect Ratio & Canvas Stage Preset
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: 12
+
+                            // Aspect Ratio
+                            RowLayout {
+                                spacing: 6
+                                StyledText {
+                                    text: Translation.tr("Aspect:")
+                                    font.pixelSize: Appearance.font.pixelSize.smaller
+                                    color: Appearance.m3colors.m3onSurfaceVariant
+                                }
+
+                                Repeater {
+                                    model: [
+                                        { label: "16:9", val: "16:9" },
+                                        { label: "9:16", val: "9:16" },
+                                        { label: "1:1", val: "1:1" }
+                                    ]
+                                    delegate: RippleButton {
+                                        required property var modelData
+                                        implicitHeight: 26
+                                        implicitWidth: 46
+                                        buttonRadius: 13
+                                        readonly property bool isSelected: RecordingStudioService.renderAspect === modelData.val
+                                        colBackground: isSelected ? Appearance.m3colors.m3primaryContainer : Appearance.m3colors.m3surfaceContainerHigh
+                                        onClicked: RecordingStudioService.renderAspect = modelData.val
+                                        StyledText {
+                                            anchors.centerIn: parent
+                                            text: parent.modelData.label
+                                            font.pixelSize: 10
+                                            font.bold: parent.isSelected
+                                            color: parent.isSelected ? Appearance.m3colors.m3onPrimaryContainer : Appearance.m3colors.m3onSurface
+                                        }
+                                    }
+                                }
+                            }
+
+                            Item { Layout.fillWidth: true }
+
+                            // Stage Background Presets
+                            RowLayout {
+                                spacing: 6
+                                StyledText {
+                                    text: Translation.tr("Stage:")
+                                    font.pixelSize: Appearance.font.pixelSize.smaller
+                                    color: Appearance.m3colors.m3onSurfaceVariant
+                                }
+
+                                Repeater {
+                                    model: [
+                                        { label: Translation.tr("Gradient"), val: "gradient" },
+                                        { label: Translation.tr("Obsidian"), val: "obsidian" },
+                                        { label: Translation.tr("Dark"), val: "dark" }
+                                    ]
+                                    delegate: RippleButton {
+                                        required property var modelData
+                                        implicitHeight: 26
+                                        implicitWidth: 60
+                                        buttonRadius: 13
+                                        readonly property bool isSelected: RecordingStudioService.renderPreset === modelData.val
+                                        colBackground: isSelected ? Appearance.m3colors.m3secondaryContainer : Appearance.m3colors.m3surfaceContainerHigh
+                                        onClicked: RecordingStudioService.renderPreset = modelData.val
+                                        StyledText {
+                                            anchors.centerIn: parent
+                                            text: parent.modelData.label
+                                            font.pixelSize: 10
+                                            font.bold: parent.isSelected
+                                            color: parent.isSelected ? Appearance.m3colors.m3onSecondaryContainer : Appearance.m3colors.m3onSurface
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Row 2: Visual & Audio Feature Chips
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: 8
+
+                            // macOS Window Mockup Frame
+                            RippleButton {
+                                implicitHeight: 28
+                                implicitWidth: frameChipRow.implicitWidth + 16
+                                buttonRadius: 14
+                                readonly property bool isSelected: RecordingStudioService.renderWindowFrame
+                                colBackground: isSelected ? Appearance.m3colors.m3primaryContainer : Appearance.m3colors.m3surfaceContainerHigh
+                                onClicked: RecordingStudioService.renderWindowFrame = !RecordingStudioService.renderWindowFrame
+                                RowLayout {
+                                    id: frameChipRow
+                                    anchors.centerIn: parent
+                                    spacing: 4
+                                    MaterialSymbol {
+                                        text: "web_asset"
+                                        iconSize: 14
+                                        color: parent.parent.isSelected ? Appearance.m3colors.m3onPrimaryContainer : Appearance.m3colors.m3onSurfaceVariant
+                                    }
+                                    StyledText {
+                                        text: Translation.tr("Window Frame")
+                                        font.pixelSize: 10
+                                        color: parent.parent.isSelected ? Appearance.m3colors.m3onPrimaryContainer : Appearance.m3colors.m3onSurface
+                                    }
+                                }
+                            }
+
+                            // Click Ripple Rings
+                            RippleButton {
+                                implicitHeight: 28
+                                implicitWidth: rippleChipRow.implicitWidth + 16
+                                buttonRadius: 14
+                                readonly property bool isSelected: RecordingStudioService.renderClickRipple
+                                colBackground: isSelected ? Appearance.m3colors.m3primaryContainer : Appearance.m3colors.m3surfaceContainerHigh
+                                onClicked: RecordingStudioService.renderClickRipple = !RecordingStudioService.renderClickRipple
+                                RowLayout {
+                                    id: rippleChipRow
+                                    anchors.centerIn: parent
+                                    spacing: 4
+                                    MaterialSymbol {
+                                        text: "ads_click"
+                                        iconSize: 14
+                                        color: parent.parent.isSelected ? Appearance.m3colors.m3onPrimaryContainer : Appearance.m3colors.m3onSurfaceVariant
+                                    }
+                                    StyledText {
+                                        text: Translation.tr("Click Rings")
+                                        font.pixelSize: 10
+                                        color: parent.parent.isSelected ? Appearance.m3colors.m3onPrimaryContainer : Appearance.m3colors.m3onSurface
+                                    }
+                                }
+                            }
+
+                            // Click Audio
+                            RippleButton {
+                                implicitHeight: 28
+                                implicitWidth: soundChipRow.implicitWidth + 16
+                                buttonRadius: 14
+                                readonly property bool isSelected: RecordingStudioService.renderClickSound
+                                colBackground: isSelected ? Appearance.m3colors.m3primaryContainer : Appearance.m3colors.m3surfaceContainerHigh
+                                onClicked: RecordingStudioService.renderClickSound = !RecordingStudioService.renderClickSound
+                                RowLayout {
+                                    id: soundChipRow
+                                    anchors.centerIn: parent
+                                    spacing: 4
+                                    MaterialSymbol {
+                                        text: "volume_up"
+                                        iconSize: 14
+                                        color: parent.parent.isSelected ? Appearance.m3colors.m3onPrimaryContainer : Appearance.m3colors.m3onSurfaceVariant
+                                    }
+                                    StyledText {
+                                        text: Translation.tr("Click Audio")
+                                        font.pixelSize: 10
+                                        color: parent.parent.isSelected ? Appearance.m3colors.m3onPrimaryContainer : Appearance.m3colors.m3onSurface
+                                    }
+                                }
+                            }
+
+                            // AI Captions (Whisper)
+                            RippleButton {
+                                implicitHeight: 28
+                                implicitWidth: capChipRow.implicitWidth + 16
+                                buttonRadius: 14
+                                readonly property bool isSelected: RecordingStudioService.renderCaptions
+                                colBackground: isSelected ? Appearance.m3colors.m3primaryContainer : Appearance.m3colors.m3surfaceContainerHigh
+                                onClicked: RecordingStudioService.renderCaptions = !RecordingStudioService.renderCaptions
+                                RowLayout {
+                                    id: capChipRow
+                                    anchors.centerIn: parent
+                                    spacing: 4
+                                    MaterialSymbol {
+                                        text: "subtitles"
+                                        iconSize: 14
+                                        color: parent.parent.isSelected ? Appearance.m3colors.m3onPrimaryContainer : Appearance.m3colors.m3onSurfaceVariant
+                                    }
+                                    StyledText {
+                                        text: Translation.tr("AI Captions")
+                                        font.pixelSize: 10
+                                        color: parent.parent.isSelected ? Appearance.m3colors.m3onPrimaryContainer : Appearance.m3colors.m3onSurface
+                                    }
+                                }
+                            }
+
+                            // GIF Export
+                            RippleButton {
+                                implicitHeight: 28
+                                implicitWidth: gifChipRow.implicitWidth + 16
+                                buttonRadius: 14
+                                readonly property bool isSelected: RecordingStudioService.renderGif
+                                colBackground: isSelected ? Appearance.m3colors.m3primaryContainer : Appearance.m3colors.m3surfaceContainerHigh
+                                onClicked: RecordingStudioService.renderGif = !RecordingStudioService.renderGif
+                                RowLayout {
+                                    id: gifChipRow
+                                    anchors.centerIn: parent
+                                    spacing: 4
+                                    MaterialSymbol {
+                                        text: "gif"
+                                        iconSize: 14
+                                        color: parent.parent.isSelected ? Appearance.m3colors.m3onPrimaryContainer : Appearance.m3colors.m3onSurfaceVariant
+                                    }
+                                    StyledText {
+                                        text: Translation.tr("GIF Export")
+                                        font.pixelSize: 10
+                                        color: parent.parent.isSelected ? Appearance.m3colors.m3onPrimaryContainer : Appearance.m3colors.m3onSurface
+                                    }
+                                }
                             }
                         }
                     }

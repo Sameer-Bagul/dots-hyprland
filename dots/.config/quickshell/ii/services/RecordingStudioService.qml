@@ -51,9 +51,28 @@ Singleton {
     property string systemAudioDevice: "default"
 
     // ================= Cursor Tracking & Zoom =================
-    property bool autoZoomEnabled: false
+    property bool autoZoomEnabled: true
     property bool zoomActive: false
     property real zoomFactor: 1.35
+
+    // ================= Studio Render Quality Options =================
+    property bool autoPolish: true
+    // Aspect ratio for exported polished video
+    property string renderAspect: "16:9"   // "16:9", "9:16", "1:1", "4:3"
+    // macOS-style window chrome header with traffic-light dots
+    property bool renderWindowFrame: false
+    property string renderWindowTitle: ""
+    // Click ripple rings overlay
+    property bool renderClickRipple: true
+    // Synthetic tactile click sounds in audio
+    property bool renderClickSound: true
+    // On-device Whisper subtitle generation
+    property bool renderCaptions: false
+    property string renderCaptionsModel: "tiny.en"   // "tiny.en", "base.en", "small.en"
+    // GIF export alongside MP4
+    property bool renderGif: false
+    // Stage background preset for polished output
+    property string renderPreset: "gradient"  // "gradient", "obsidian", "blur", "dark"
 
     // Path to studio_record.sh
     readonly property string studioRecordScriptPath: CF.FileUtils.trimFileProtocol(`${Directories.scriptPath}/videos/studio_record.sh`)
@@ -120,9 +139,19 @@ Singleton {
     // ================= Area Selection via slurp =================
     property bool isSelectingArea: false
 
+    // Delay timer to let Wayland compositor unmap modal overlay and release seat grab
+    Timer {
+        id: slurpDelayTimer
+        interval: 220
+        repeat: false
+        onTriggered: {
+            slurpProcess.running = true;
+        }
+    }
+
     Process {
         id: slurpProcess
-        command: ["slurp", "-d", "-b", "#00000066", "-c", "#cba6f7", "-s", "#cba6f722"]
+        command: ["slurp", "-d", "-b", "#00000066", "-c", "#cba6f7ff", "-s", "#cba6f722"]
 
         stdout: StdioCollector {
             id: slurpCollector
@@ -137,7 +166,11 @@ Singleton {
 
         onExited: (exitCode, exitStatus) => {
             root.isSelectingArea = false;
-            if (exitCode !== 0 && root.regionGeometry.length === 0) {
+            const raw = slurpCollector.text.trim();
+            if (raw.length > 0 && raw.indexOf(" ") !== -1) {
+                root.regionGeometry = raw;
+                root.captureMode = "region";
+            } else if (exitCode !== 0 && root.regionGeometry.length === 0) {
                 root.captureMode = "fullscreen";
             }
             root.setupModalOpen = true;
@@ -150,7 +183,7 @@ Singleton {
         }
         root.isSelectingArea = true;
         root.setupModalOpen = false;
-        slurpProcess.running = true;
+        slurpDelayTimer.restart();
     }
 
     // Start with countdown
@@ -191,9 +224,29 @@ Singleton {
             args.push("--sys-device", root.systemAudioDevice);
         }
 
-        if (root.autoZoomEnabled) {
+        if (root.autoPolish) {
             args.push("--auto-polish", "1");
         }
+        if (!root.autoZoomEnabled) {
+            args.push("--render-no-zoom", "1");
+        }
+
+        // Studio render quality flags (forwarded to studio_render.py via studio_record.sh)
+        args.push("--render-aspect", root.renderAspect);
+        args.push("--render-preset", root.renderPreset);
+        if (root.renderWindowFrame) {
+            args.push("--render-window-frame", "1");
+            if (root.renderWindowTitle.length > 0) {
+                args.push("--render-window-title", root.renderWindowTitle);
+            }
+        }
+        if (!root.renderClickRipple) args.push("--render-no-click-ripple", "1");
+        if (!root.renderClickSound)  args.push("--render-no-click-sound", "1");
+        if (root.renderCaptions) {
+            args.push("--render-captions", "1");
+            args.push("--render-captions-model", root.renderCaptionsModel);
+        }
+        if (root.renderGif) args.push("--render-gif", "1");
 
         // Execute recorder in background
         Quickshell.execDetached(args);
