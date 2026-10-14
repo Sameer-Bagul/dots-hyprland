@@ -20,28 +20,21 @@ AbstractBackgroundWidget {
 
     configEntryName: "music"
 
+    scale: 1.0
+    Behavior on scale { enabled: false }
+
     readonly property list<MprisPlayer> players: MprisController.players
-    readonly property MprisPlayer activePlayer: {
-        if (!players || players.length === 0) return null;
-        // 1. Prefer player with real art URL (avoid generic browser icon like brave/chromium)
-        let withArt = players.find(p => p.trackArtUrl && p.trackArtUrl.length > 0 && !p.trackArtUrl.includes("brave") && !p.trackArtUrl.includes("chromium"));
-        if (withArt) return withArt;
-
-        // 2. Prefer player with real artist name
-        let withArtist = players.find(p => p.trackArtist && p.trackArtist.length > 0);
-        if (withArtist) return withArtist;
-
-        // 3. Fallback to MprisController.activePlayer or first player
-        return MprisController.activePlayer ?? players[0];
-    }
+    readonly property MprisPlayer activePlayer: MprisController.activePlayer ?? (players.length > 0 ? players[0] : null)
 
     readonly property bool hasTrack: (activePlayer && ((activePlayer.trackTitle && activePlayer.trackTitle.length > 0) || (activePlayer.trackArtist && activePlayer.trackArtist.length > 0))) ?? false
     readonly property bool hideWhenIdle: Config.options.background.widgets.music?.hideWhenIdle ?? true
+    readonly property string musicLayout: Config.options.background.widgets.music?.layout ?? Config.options.background.widgets.music?.style ?? "horizontal"
+    readonly property bool isVertical: musicLayout === "vertical" || musicLayout === "spotify" || musicLayout === "card"
 
     visible: (!hideWhenIdle || hasTrack) && (opacity > 0)
 
-    implicitWidth: Appearance.sizes.mediaControlsWidth
-    implicitHeight: Appearance.sizes.mediaControlsHeight
+    implicitWidth: isVertical ? 290 : Appearance.sizes.mediaControlsWidth
+    implicitHeight: isVertical ? 485 : Appearance.sizes.mediaControlsHeight
 
     property list<real> visualizerPoints: []
 
@@ -65,7 +58,23 @@ AbstractBackgroundWidget {
     Loader {
         anchors.fill: parent
         active: root.activePlayer !== null
-        sourceComponent: PlayerControl {
+        sourceComponent: root.isVertical ? verticalComponent : horizontalComponent
+    }
+
+    Component {
+        id: horizontalComponent
+        PlayerControl {
+            player: root.activePlayer
+            visualizerPoints: root.visualizerPoints
+            implicitWidth: root.implicitWidth
+            implicitHeight: root.implicitHeight
+            radius: Appearance.rounding.normal
+        }
+    }
+
+    Component {
+        id: verticalComponent
+        SpotifyCard {
             player: root.activePlayer
             visualizerPoints: root.visualizerPoints
             implicitWidth: root.implicitWidth
@@ -83,9 +92,30 @@ AbstractBackgroundWidget {
         border.width: 1
         border.color: Appearance.colors.colLayer0Border
 
+        ColumnLayout {
+            anchors.centerIn: parent
+            spacing: 12
+            visible: root.isVertical
+
+            MaterialSymbol {
+                Layout.alignment: Qt.AlignHCenter
+                iconSize: 48
+                color: Appearance.colors.colSubtext
+                text: "music_off"
+            }
+
+            StyledText {
+                Layout.alignment: Qt.AlignHCenter
+                color: Appearance.colors.colSubtext
+                font.pixelSize: Appearance.font.pixelSize.normal
+                text: Translation.tr("No active player")
+            }
+        }
+
         RowLayout {
             anchors.centerIn: parent
             spacing: 12
+            visible: !root.isVertical
 
             MaterialSymbol {
                 iconSize: 32

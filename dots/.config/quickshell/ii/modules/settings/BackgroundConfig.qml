@@ -660,6 +660,29 @@ ContentPage {
             }
         }
 
+        ContentSubsection {
+            title: Translation.tr("Layout style")
+
+            ConfigSelectionArray {
+                currentValue: Config.options.background.widgets.music.layout ?? "horizontal"
+                onSelected: newValue => {
+                    Config.options.background.widgets.music.layout = newValue;
+                }
+                options: [
+                    {
+                        displayName: Translation.tr("Horizontal"),
+                        icon: "view_agenda",
+                        value: "horizontal"
+                    },
+                    {
+                        displayName: Translation.tr("Spotify Card"),
+                        icon: "stay_current_portrait",
+                        value: "vertical"
+                    },
+                ]
+            }
+        }
+
         ConfigSwitch {
             buttonIcon: "visibility_off"
             text: Translation.tr("Hide when inactive")
