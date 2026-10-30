@@ -131,7 +131,7 @@ Scope { // Scope
                                 visible: Config.options?.dock?.showAppsButton ?? true
                                 Layout.fillHeight: true
                                 toggled: GlobalStates.cheatsheetOpen && Persistent.states.cheatsheet.tabIndex === 1
-                                onClicked: {
+                                downAction: () => {
                                     GlobalStates.overviewOpen = false;
                                     if (GlobalStates.cheatsheetOpen && Persistent.states.cheatsheet.tabIndex === 1) {
                                         GlobalStates.cheatsheetOpen = false;

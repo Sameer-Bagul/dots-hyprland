@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 
+import qs
 import qs.services
 import qs.modules.common
 import qs.modules.common.functions
@@ -21,33 +22,69 @@ Item {
 
     property string searchQuery: ""
 
+    function resetAndFocus() {
+        searchInput.text = "";
+        searchInput.forceActiveFocus();
+    }
+
     Connections {
         target: root
         function onVisibleChanged() {
             if (root.visible) {
-                searchInput.text = "";
-                searchInput.forceActiveFocus();
+                root.resetAndFocus();
             }
         }
     }
 
-    Component.onCompleted: {
-        if (root.visible) {
-            searchInput.forceActiveFocus();
+    Connections {
+        target: Persistent.states.cheatsheet
+        function onTabIndexChanged() {
+            if (GlobalStates.cheatsheetOpen && Persistent.states.cheatsheet.tabIndex === 1) {
+                root.resetAndFocus();
+            }
         }
     }
 
-    readonly property var allApps: {
-        const list = Array.from(DesktopEntries.applications.values);
-        // Deduplicate by app id
-        const deduped = list.filter((app, index, self) =>
-            index === self.findIndex(t => t.id === app.id)
-        );
-        // Filter out empty entries
-        const valid = deduped.filter(app => app && app.name && app.name.trim().length > 0);
-        // Sort alphabetically by name
+    Connections {
+        target: GlobalStates
+        function onCheatsheetOpenChanged() {
+            if (GlobalStates.cheatsheetOpen && Persistent.states.cheatsheet.tabIndex === 1) {
+                root.resetAndFocus();
+            }
+        }
+    }
+
+    property var allApps: []
+
+    function updateAppsList() {
+        const values = DesktopEntries.applications.values;
+        if (!values) return;
+        const seen = new Set();
+        const valid = [];
+        for (const app of values) {
+            if (!app || !app.id || !app.name) continue;
+            const name = app.name.trim();
+            if (name.length === 0) continue;
+            if (seen.has(app.id)) continue;
+            seen.add(app.id);
+            valid.push(app);
+        }
         valid.sort((a, b) => a.name.localeCompare(b.name));
-        return valid;
+        allApps = valid;
+    }
+
+    Component.onCompleted: {
+        updateAppsList();
+        if (root.visible) {
+            root.resetAndFocus();
+        }
+    }
+
+    Connections {
+        target: DesktopEntries
+        function onApplicationsChanged() {
+            root.updateAppsList();
+        }
     }
 
     readonly property var filteredApps: {

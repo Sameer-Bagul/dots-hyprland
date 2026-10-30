@@ -30,49 +30,48 @@ Scope { // Scope
     ]
     readonly property var targetScreen: GlobalStates.cheatsheetScreen ?? Quickshell.screens.find(s => s.name === Hyprland.focusedMonitor?.name) ?? Quickshell.screens[0]
 
-    Loader {
-        id: cheatsheetLoader
-        active: GlobalStates.cheatsheetOpen
+    PanelWindow { // Window
+        id: cheatsheetRoot
+        visible: GlobalStates.cheatsheetOpen
+        screen: root.targetScreen
 
-        sourceComponent: PanelWindow { // Window
-            id: cheatsheetRoot
-            visible: cheatsheetLoader.active
-            screen: root.targetScreen
+        anchors {
+            top: true
+            bottom: true
+            left: true
+            right: true
+        }
 
-            anchors {
-                top: true
-                bottom: true
-                left: true
-                right: true
-            }
+        function hide() {
+            GlobalStates.cheatsheetOpen = false;
+            GlobalStates.cheatsheetScreen = null;
+        }
+        exclusiveZone: 0
+        implicitWidth: cheatsheetBackground.width + Appearance.sizes.elevationMargin * 2
+        implicitHeight: cheatsheetBackground.height + Appearance.sizes.elevationMargin * 2
+        WlrLayershell.namespace: "quickshell:cheatsheet"
+        WlrLayershell.layer: WlrLayer.Top
+        WlrLayershell.keyboardFocus: GlobalStates.cheatsheetOpen ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+        color: "transparent"
 
-            function hide() {
-                GlobalStates.cheatsheetOpen = false;
-                GlobalStates.cheatsheetScreen = null;
-            }
-            exclusiveZone: 0
-            implicitWidth: cheatsheetBackground.width + Appearance.sizes.elevationMargin * 2
-            implicitHeight: cheatsheetBackground.height + Appearance.sizes.elevationMargin * 2
-            WlrLayershell.namespace: "quickshell:cheatsheet"
-            WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
-            color: "transparent"
+        mask: Region {
+            item: GlobalStates.cheatsheetOpen ? cheatsheetBackground : null
+        }
 
-            mask: Region {
-                item: cheatsheetBackground
-            }
-
-            Component.onCompleted: {
+        onVisibleChanged: {
+            if (visible) {
                 GlobalFocusGrab.addDismissable(cheatsheetRoot);
-            }
-            Component.onDestruction: {
+            } else {
                 GlobalFocusGrab.removeDismissable(cheatsheetRoot);
             }
-            Connections {
-                target: GlobalFocusGrab
-                function onDismissed() {
-                    cheatsheetRoot.hide();
-                }
+        }
+
+        Connections {
+            target: GlobalFocusGrab
+            function onDismissed() {
+                cheatsheetRoot.hide();
             }
+        }
 
             // Background
             StyledRectangularShadow {
@@ -112,7 +111,7 @@ Scope { // Scope
 
                 RippleButton { // Close button
                     id: closeButton
-                    focus: cheatsheetRoot.visible
+                    focus: cheatsheetRoot.visible && Persistent.states.cheatsheet.tabIndex !== 1
                     implicitWidth: 40
                     implicitHeight: 40
                     buttonRadius: Appearance.rounding.full
@@ -190,6 +189,7 @@ Scope { // Scope
 
                         CheatsheetKeybinds {}
                         CheatsheetApps {
+                            id: cheatsheetApps
                             onAppLaunched: cheatsheetRoot.hide()
                         }
                         CheatsheetPeriodicTable {}
@@ -197,7 +197,6 @@ Scope { // Scope
                 }
             }
         }
-    }
 
     IpcHandler {
         target: "cheatsheet"
