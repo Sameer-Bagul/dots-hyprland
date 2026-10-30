@@ -1,3 +1,4 @@
+import qs
 import qs.services
 import qs.modules.common
 import qs.modules.common.widgets
@@ -19,7 +20,7 @@ Scope { // Scope
             "name": Translation.tr("Keybinds")
         },
         {
-            "icon": "apps",
+            "icon": "grid_view",
             "name": Translation.tr("Apps")
         },
         {
@@ -27,14 +28,16 @@ Scope { // Scope
             "name": Translation.tr("Elements")
         },
     ]
+    readonly property var targetScreen: GlobalStates.cheatsheetScreen ?? Quickshell.screens.find(s => s.name === Hyprland.focusedMonitor?.name) ?? Quickshell.screens[0]
 
     Loader {
         id: cheatsheetLoader
-        active: false
+        active: GlobalStates.cheatsheetOpen
 
         sourceComponent: PanelWindow { // Window
             id: cheatsheetRoot
             visible: cheatsheetLoader.active
+            screen: root.targetScreen
 
             anchors {
                 top: true
@@ -44,14 +47,14 @@ Scope { // Scope
             }
 
             function hide() {
-                cheatsheetLoader.active = false;
+                GlobalStates.cheatsheetOpen = false;
+                GlobalStates.cheatsheetScreen = null;
             }
             exclusiveZone: 0
             implicitWidth: cheatsheetBackground.width + Appearance.sizes.elevationMargin * 2
             implicitHeight: cheatsheetBackground.height + Appearance.sizes.elevationMargin * 2
             WlrLayershell.namespace: "quickshell:cheatsheet"
-            // Setting this value makes it take its sweet time to open
-            // WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
+            WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
             color: "transparent"
 
             mask: Region {
@@ -158,7 +161,18 @@ Scope { // Scope
                         spacing: 10
                         currentIndex: Persistent.states.cheatsheet.tabIndex
                         onCurrentIndexChanged: {
-                            Persistent.states.cheatsheet.tabIndex = currentIndex;
+                            if (Persistent.states.cheatsheet.tabIndex !== currentIndex) {
+                                Persistent.states.cheatsheet.tabIndex = currentIndex;
+                            }
+                        }
+
+                        Connections {
+                            target: Persistent.states.cheatsheet
+                            function onTabIndexChanged() {
+                                if (swipeView.currentIndex !== Persistent.states.cheatsheet.tabIndex) {
+                                    swipeView.currentIndex = Persistent.states.cheatsheet.tabIndex;
+                                }
+                            }
                         }
 
                         implicitWidth: Math.max.apply(null, contentChildren.map(child => child.implicitWidth || 0))
@@ -189,15 +203,31 @@ Scope { // Scope
         target: "cheatsheet"
 
         function toggle(): void {
-            cheatsheetLoader.active = !cheatsheetLoader.active;
+            GlobalStates.cheatsheetOpen = !GlobalStates.cheatsheetOpen;
         }
 
         function close(): void {
-            cheatsheetLoader.active = false;
+            GlobalStates.cheatsheetOpen = false;
+            GlobalStates.cheatsheetScreen = null;
         }
 
         function open(): void {
-            cheatsheetLoader.active = true;
+            GlobalStates.cheatsheetOpen = true;
+        }
+
+        function openTab(index: int): void {
+            Persistent.states.cheatsheet.tabIndex = index;
+            GlobalStates.cheatsheetOpen = true;
+        }
+
+        function toggleApps(): void {
+            if (GlobalStates.cheatsheetOpen && Persistent.states.cheatsheet.tabIndex === 1) {
+                GlobalStates.cheatsheetOpen = false;
+                GlobalStates.cheatsheetScreen = null;
+            } else {
+                Persistent.states.cheatsheet.tabIndex = 1;
+                GlobalStates.cheatsheetOpen = true;
+            }
         }
     }
 
@@ -206,7 +236,7 @@ Scope { // Scope
         description: "Toggles cheatsheet on press"
 
         onPressed: {
-            cheatsheetLoader.active = !cheatsheetLoader.active;
+            GlobalStates.cheatsheetOpen = !GlobalStates.cheatsheetOpen;
         }
     }
 
@@ -215,7 +245,7 @@ Scope { // Scope
         description: "Opens cheatsheet on press"
 
         onPressed: {
-            cheatsheetLoader.active = true;
+            GlobalStates.cheatsheetOpen = true;
         }
     }
 
@@ -224,7 +254,22 @@ Scope { // Scope
         description: "Closes cheatsheet on press"
 
         onPressed: {
-            cheatsheetLoader.active = false;
+            GlobalStates.cheatsheetOpen = false;
+            GlobalStates.cheatsheetScreen = null;
+        }
+    }
+
+    GlobalShortcut {
+        name: "cheatsheetAppsToggle"
+        description: "Toggles cheatsheet Apps tab on press"
+
+        onPressed: {
+            if (GlobalStates.cheatsheetOpen && Persistent.states.cheatsheet.tabIndex === 1) {
+                GlobalStates.cheatsheetOpen = false;
+            } else {
+                Persistent.states.cheatsheet.tabIndex = 1;
+                GlobalStates.cheatsheetOpen = true;
+            }
         }
     }
 }

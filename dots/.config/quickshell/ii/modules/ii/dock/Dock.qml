@@ -127,8 +127,40 @@ Scope { // Scope
                             }
                             DockSeparator {}
                             DockButton {
+                                id: appsButton
+                                visible: Config.options?.dock?.showAppsButton ?? true
                                 Layout.fillHeight: true
-                                onClicked: GlobalStates.overviewOpen = !GlobalStates.overviewOpen
+                                toggled: GlobalStates.cheatsheetOpen && Persistent.states.cheatsheet.tabIndex === 1
+                                onClicked: {
+                                    GlobalStates.overviewOpen = false;
+                                    if (GlobalStates.cheatsheetOpen && Persistent.states.cheatsheet.tabIndex === 1) {
+                                        GlobalStates.cheatsheetOpen = false;
+                                        GlobalStates.cheatsheetScreen = null;
+                                    } else {
+                                        GlobalStates.cheatsheetScreen = dockRoot.screen;
+                                        Persistent.states.cheatsheet.tabIndex = 1;
+                                        GlobalStates.cheatsheetOpen = true;
+                                    }
+                                }
+                                topInset: Appearance.sizes.hyprlandGapsOut + dockRow.padding
+                                bottomInset: Appearance.sizes.hyprlandGapsOut + dockRow.padding
+                                contentItem: MaterialSymbol {
+                                    anchors.fill: parent
+                                    horizontalAlignment: Text.AlignHCenter
+                                    font.pixelSize: parent.width / 2
+                                    text: "grid_view"
+                                    color: appsButton.toggled ? Appearance.m3colors.m3onPrimary : Appearance.colors.colOnLayer0
+                                }
+                                StyledToolTip {
+                                    text: Translation.tr("Applications")
+                                }
+                            }
+                            DockButton {
+                                Layout.fillHeight: true
+                                onClicked: {
+                                    GlobalStates.cheatsheetOpen = false;
+                                    GlobalStates.overviewOpen = !GlobalStates.overviewOpen;
+                                }
                                 topInset: Appearance.sizes.hyprlandGapsOut + dockRow.padding
                                 bottomInset: Appearance.sizes.hyprlandGapsOut + dockRow.padding
                                 contentItem: MaterialSymbol {
@@ -137,6 +169,9 @@ Scope { // Scope
                                     font.pixelSize: parent.width / 2
                                     text: "apps"
                                     color: Appearance.colors.colOnLayer0
+                                }
+                                StyledToolTip {
+                                    text: Translation.tr("Overview")
                                 }
                             }
                         }

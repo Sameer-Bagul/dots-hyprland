@@ -21,6 +21,22 @@ Item {
 
     property string searchQuery: ""
 
+    Connections {
+        target: root
+        function onVisibleChanged() {
+            if (root.visible) {
+                searchInput.text = "";
+                searchInput.forceActiveFocus();
+            }
+        }
+    }
+
+    Component.onCompleted: {
+        if (root.visible) {
+            searchInput.forceActiveFocus();
+        }
+    }
+
     readonly property var allApps: {
         const list = Array.from(DesktopEntries.applications.values);
         // Deduplicate by app id
