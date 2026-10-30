@@ -129,8 +129,8 @@ Scope { // Scope
                             DockButton {
                                 id: appsButton
                                 visible: Config.options?.dock?.showAppsButton ?? true
+                                readonly property bool isAppsActive: GlobalStates.cheatsheetOpen && Persistent.states.cheatsheet.tabIndex === 1
                                 Layout.fillHeight: true
-                                toggled: GlobalStates.cheatsheetOpen && Persistent.states.cheatsheet.tabIndex === 1
                                 downAction: () => {
                                     GlobalStates.overviewOpen = false;
                                     if (GlobalStates.cheatsheetOpen && Persistent.states.cheatsheet.tabIndex === 1) {
@@ -144,15 +144,38 @@ Scope { // Scope
                                 }
                                 topInset: Appearance.sizes.hyprlandGapsOut + dockRow.padding
                                 bottomInset: Appearance.sizes.hyprlandGapsOut + dockRow.padding
-                                contentItem: MaterialSymbol {
-                                    anchors.fill: parent
-                                    horizontalAlignment: Text.AlignHCenter
-                                    font.pixelSize: parent.width / 2
-                                    text: "grid_view"
-                                    color: appsButton.toggled ? Appearance.m3colors.m3onPrimary : Appearance.colors.colOnLayer0
-                                }
-                                StyledToolTip {
-                                    text: Translation.tr("Applications")
+                                contentItem: Item {
+                                    anchors.centerIn: parent
+
+                                    Item {
+                                        id: iconContainer
+                                        anchors {
+                                            left: parent.left
+                                            right: parent.right
+                                            verticalCenter: parent.verticalCenter
+                                        }
+                                        implicitHeight: 35
+
+                                        MaterialSymbol {
+                                            anchors.centerIn: parent
+                                            font.pixelSize: parent.width / 2
+                                            text: "grid_view"
+                                            color: Appearance.colors.colOnLayer0
+                                        }
+                                    }
+
+                                    Rectangle {
+                                        visible: appsButton.isAppsActive
+                                        anchors {
+                                            top: iconContainer.bottom
+                                            topMargin: 2
+                                            horizontalCenter: parent.horizontalCenter
+                                        }
+                                        radius: Appearance.rounding.full
+                                        implicitWidth: 10
+                                        implicitHeight: 4
+                                        color: Appearance.colors.colPrimary
+                                    }
                                 }
                             }
                             DockButton {
@@ -169,9 +192,6 @@ Scope { // Scope
                                     font.pixelSize: parent.width / 2
                                     text: "apps"
                                     color: Appearance.colors.colOnLayer0
-                                }
-                                StyledToolTip {
-                                    text: Translation.tr("Overview")
                                 }
                             }
                         }
